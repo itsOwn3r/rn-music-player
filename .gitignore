@@ -3,6 +3,8 @@
 # dependencies
 node_modules/
 
+data/music.ts
+
 # Expo
 .expo/
 dist/
