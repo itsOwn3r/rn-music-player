@@ -1,4 +1,6 @@
 import coverImage from "@/assets/placeholder2.jpg";
+import formatDuration from "@/tools/formatDuration";
+import { Song } from "@/types/types";
 import Slider from "@react-native-community/slider";
 import React from "react";
 import { Image, Text, View } from "react-native";
@@ -6,15 +8,33 @@ import NeumorphicButton from "./NeumorphicButton";
 
 interface Props {
   setTabSelected: React.Dispatch<React.SetStateAction<"list" | "playing">>;
+  playSong: (number: number) => void;
+  currentSongIndex: number;
+  playPauseMusic: () => void;
+  duration: number;
+  position: number;
+  handleChangeSongPosition: (position: number) => void;
+  isPlaying: boolean;
+  currentSong: Song | null;
 }
 
-const Playing = ({ setTabSelected }: Props) => {
+const Playing = ({
+  setTabSelected,
+  playSong,
+  currentSongIndex,
+  playPauseMusic,
+  duration,
+  position,
+  handleChangeSongPosition,
+  isPlaying,
+  currentSong,
+}: Props) => {
   return (
     <View className="h-screen">
       <View className="flex-row justify-between items-center mx-4 mt-7">
         <NeumorphicButton
           icon="arrow-back"
-          onPress={() => setTabSelected("list")}
+          onPress={() => {}}
           style="bg-gray-700 p-4"
         />
         <Text className="text-center text-white font-semibold text-sm uppercase">
@@ -22,7 +42,7 @@ const Playing = ({ setTabSelected }: Props) => {
         </Text>
         <NeumorphicButton
           icon="menu"
-          onPress={() => {}}
+          onPress={() => setTabSelected("list")}
           style="bg-gray-700 p-4"
         />
       </View>
@@ -30,7 +50,9 @@ const Playing = ({ setTabSelected }: Props) => {
         className={`items-center mt-14 rounded-full border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
       >
         <Image
-          source={coverImage}
+          source={
+            currentSong?.coverArt ? { uri: currentSong.coverArt } : coverImage
+          }
           alt="Cover Image"
           className="rounded-full shadow-lg shadow-black size-full"
           width={250}
@@ -40,10 +62,10 @@ const Playing = ({ setTabSelected }: Props) => {
 
       <View className="mt-14">
         <Text className="text-center text-4xl text-white font-semibold mb-1">
-          Songs Title
+          {currentSong ? currentSong.title : "Song Title"}
         </Text>
         <Text className="text-center text-sm text-gray-400 font-semibold mb-1">
-          Song artist name
+          {currentSong ? currentSong.artist : "Artist Name"}
         </Text>
       </View>
 
@@ -52,34 +74,35 @@ const Playing = ({ setTabSelected }: Props) => {
           <Slider
             style={{ width: "100%", height: 40 }}
             minimumValue={0}
-            maximumValue={1}
+            maximumValue={duration}
+            value={position}
+            onSlidingComplete={(value) => handleChangeSongPosition(value)}
             minimumTrackTintColor="#e17645"
             maximumTrackTintColor="#4a4a4a"
             thumbTintColor="#e17645"
-            onSlidingComplete={() => {}}
           />
         </View>
       </View>
 
       <View className="flex-row justify-between mt-2 px-7">
-        <Text className="text-gray-400">1:24</Text>
-        <Text className="text-gray-400">3:54</Text>
+        <Text className="text-gray-400">{formatDuration(position)}</Text>
+        <Text className="text-gray-400">{formatDuration(duration)}</Text>
       </View>
 
       <View className="flex flex-row justify-evenly mx-7 items-center">
         <NeumorphicButton
           icon="play-skip-back"
-          onPress={() => {}}
+          onPress={() => playSong(currentSongIndex - 1)}
           style="bg-gray-700 p-4"
         />
         <NeumorphicButton
-          icon="pause"
-          onPress={() => {}}
+          icon={isPlaying ? "pause" : "play"}
+          onPress={() => playPauseMusic()}
           style="bg-orange-800 p-4"
         />
         <NeumorphicButton
           icon="play-skip-forward"
-          onPress={() => {}}
+          onPress={() => playSong(currentSongIndex + 1)}
           style="bg-gray-700 p-4"
         />
       </View>
