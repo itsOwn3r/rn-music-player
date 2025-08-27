@@ -25,11 +25,13 @@ const TabsNavigation = () => {
           borderTopRightRadius: 20,
           borderTopWidth: 0,
           paddingTop: 0,
+          zIndex: 10,
+          backgroundColor: "#000",
         },
         tabBarBackground: () => (
           <BlurView
             intensity={40}
-            className="absolute top-0 bottom-0 left-0 right-0 overflow-hidden rounded-tl-3xl rounded-tr-3xl"
+            className="z-10 absolute top-0 bottom-0 left-0 right-0 overflow-hidden rounded-tl-3xl rounded-tr-3xl"
           />
         ),
       }}
