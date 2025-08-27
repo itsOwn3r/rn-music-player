@@ -1,6 +1,7 @@
+import library from "@/assets/data/library.json";
 import TracksList from "@/components/TracksList";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useEffect, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import {
   Animated,
   AppState,
@@ -10,22 +11,24 @@ import {
 } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
-const HEADER_MAX_HEIGHT = 50;
-const HEADER_MIN_HEIGHT = 0;
-const HEADER_SCROLL_DISTANCE = HEADER_MAX_HEIGHT - HEADER_MIN_HEIGHT;
-
 const SongsScreen = () => {
   const [search, setSearch] = useState("");
-  const insets = useSafeAreaInsets();
+
+  const filteredSongs = useMemo(() => {
+    if (search.trim() === "") {
+      return [];
+    }
+    const lowercasedSearch = search.toLowerCase();
+    return library.filter(
+      (track) =>
+        track.title.toLowerCase().includes(lowercasedSearch) ||
+        (track.artist && track.artist.toLowerCase().includes(lowercasedSearch))
+    );
+  }, [search]);
 
   const scrollY = useRef(new Animated.Value(0)).current;
-  const clampedY = Animated.diffClamp(scrollY, 0, HEADER_SCROLL_DISTANCE);
 
-  const headerTranslateY = clampedY.interpolate({
-    inputRange: [0, HEADER_SCROLL_DISTANCE],
-    outputRange: [0, -HEADER_SCROLL_DISTANCE],
-    extrapolate: "clamp",
-  });
+  const insets = useSafeAreaInsets();
 
   useEffect(() => {
     const sub = AppState.addEventListener("change", (state) => {
@@ -37,7 +40,6 @@ const SongsScreen = () => {
     return () => sub.remove();
   }, [scrollY]);
 
-  // 👇 wrap your list component in Animated
   const AnimatedTracksList = Animated.createAnimatedComponent(TracksList);
 
   return (
@@ -46,7 +48,6 @@ const SongsScreen = () => {
         className="absolute left-0 right-0 bg-neutral-900 px-4 pb-2 z-10"
         style={{
           paddingTop: insets.top,
-          transform: [{ translateY: headerTranslateY }],
           elevation: 8,
         }}
       >
@@ -58,16 +59,25 @@ const SongsScreen = () => {
             value={search}
             onChangeText={setSearch}
           />
-          <TouchableOpacity className="pl-2 py-2">
-            <Ionicons name="search" color="#fff" size={20} />
-          </TouchableOpacity>
+          {search ? (
+            <TouchableOpacity
+              className="pl-2 py-2"
+              onPress={() => setSearch("")}
+            >
+              <Ionicons name="close" color="red" size={20} />
+            </TouchableOpacity>
+          ) : (
+            <TouchableOpacity className="pl-2 py-2">
+              <Ionicons name="search" color="#fff" size={20} />
+            </TouchableOpacity>
+          )}
         </View>
       </Animated.View>
 
       <AnimatedTracksList
         contentContainerStyle={{
-          paddingTop: insets.top + HEADER_MAX_HEIGHT + 12,
-          paddingBottom: insets.bottom + 36,
+          paddingTop: 72,
+          paddingBottom: 128,
         }}
         scrollEventThrottle={16}
         onScroll={Animated.event(
@@ -77,7 +87,7 @@ const SongsScreen = () => {
         removeClippedSubviews
         initialNumToRender={12}
         windowSize={11}
-        extraData={search}
+        extraData={!search && filteredSongs.length === 0 ? null : filteredSongs}
       />
     </View>
   );
