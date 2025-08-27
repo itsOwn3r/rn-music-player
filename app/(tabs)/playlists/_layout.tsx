@@ -1,3 +1,4 @@
+import { StackScreenWithSearchBar } from "@/constants/layouts";
 import { Stack } from "expo-router";
 import React from "react";
 import { View } from "react-native";
@@ -8,7 +9,11 @@ const PlaylistsScreenLayout = () => {
       <Stack>
         <Stack.Screen
           name="index"
-          options={{ headerTitle: "Playlists", headerTitleAlign: "center" }}
+          options={{
+            ...StackScreenWithSearchBar,
+            headerTitle: "Playlists",
+            headerTitleAlign: "center",
+          }}
         />
       </Stack>
     </View>

@@ -24,7 +24,7 @@ const TabsNavigation = () => {
           borderTopLeftRadius: 20,
           borderTopRightRadius: 20,
           borderTopWidth: 0,
-          paddingTop: 4,
+          paddingTop: 0,
         },
         tabBarBackground: () => (
           <BlurView

@@ -4,6 +4,7 @@
 node_modules/
 
 data/music.ts
+assets/data
 
 # Expo
 .expo/
