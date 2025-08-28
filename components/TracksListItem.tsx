@@ -1,9 +1,16 @@
 import { unknownTrackImageUri } from "@/constants/images";
 import React from "react";
 import { Image, Text, TouchableHighlight, View } from "react-native";
+import { Track } from "react-native-track-player";
 
 export type TrackListItemProps = {
-  track: { title: string; image?: string; artist?: string };
+  track:
+    | Track
+    | {
+        title: "No results found";
+        artist: "Try a different search term";
+        image: null;
+      };
 };
 
 const TracksListItem = ({ track }: TrackListItemProps) => {

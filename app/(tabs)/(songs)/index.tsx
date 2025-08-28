@@ -14,7 +14,7 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 const SongsScreen = () => {
   const [search, setSearch] = useState("");
 
-  const filteredSongs = useMemo(() => {
+  const filteredTracks = useMemo(() => {
     if (search.trim() === "") {
       return [];
     }
@@ -75,6 +75,7 @@ const SongsScreen = () => {
       </Animated.View>
 
       <AnimatedTracksList
+        tracks={library}
         contentContainerStyle={{
           paddingTop: 72,
           paddingBottom: 128,
@@ -87,7 +88,9 @@ const SongsScreen = () => {
         removeClippedSubviews
         initialNumToRender={12}
         windowSize={11}
-        extraData={!search && filteredSongs.length === 0 ? null : filteredSongs}
+        extraData={
+          !search && filteredTracks.length === 0 ? null : filteredTracks
+        }
       />
     </View>
   );
