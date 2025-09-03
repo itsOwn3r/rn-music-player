@@ -5,6 +5,12 @@ import {
 import { ensureCacheDir, looksLikeAudio } from "@/tools/fileUtils";
 import { readTagsForContentUri } from "@/tools/metadata";
 import saveSongMetadata from "@/tools/saveCurrnetSong";
+import {
+  getCachedMetadata,
+  getCachedMetadataLoose,
+  setCachedMetadata,
+  setCachedMetadataLoose,
+} from "@/tools/setAndGetCache";
 import { Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
@@ -90,11 +96,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         );
       const audioUris = entries.filter(looksLikeAudio);
       if (audioUris.length === 0) {
-        set({ files: [], currentSongIndex: -1 });
+        set({ files: [], currentSongIndex: -1, isLoading: false });
         return;
       }
 
       const cacheDir = await ensureCacheDir();
+
       const lightweightList: Song[] = audioUris.map((uri, index) => {
         const filename = uri.split("/").pop() ?? "Unknown.mp3";
         return {
@@ -117,7 +124,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       const sortedList = lightweightList.sort((a, b) =>
         a.filename.localeCompare(b.filename)
       );
-      set({ files: sortedList });
+
+      set({ files: sortedList, isLoading: false });
 
       const lastSong = await AsyncStorage.getItem("song");
       if (lastSong) {
@@ -130,30 +138,92 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         set({ currentSongIndex: 0 });
       }
 
-      // background metadata
-      const fetchMetadata = async (song: Song, idx: number) => {
+      const firstChunk = sortedList.slice(0, 40);
+      const rest = sortedList.slice(40);
+
+      const inflight = new Set<string>();
+      const fetched = new Set<string>();
+
+      const fetchOne = async (song: Song, idx: number) => {
+        if (fetched.has(song.uri) || inflight.has(song.uri)) return;
+        inflight.add(song.uri);
         try {
+          const info = await FileSystem.getInfoAsync(song.uri as any);
+          let modificationTime: number | undefined = undefined;
+          if (info && (info as any).exists && "modificationTime" in info) {
+            modificationTime = (info as any).modificationTime as
+              | number
+              | undefined;
+          }
+
+          if (modificationTime) {
+            const cached = await getCachedMetadata(song.uri, modificationTime);
+            if (cached) {
+              set((prev) => ({
+                files: prev.files.map((f) =>
+                  f.uri === song.uri ? { ...f, ...cached, index: idx } : f
+                ),
+              }));
+              fetched.add(song.uri);
+              return;
+            }
+          } else {
+            const cachedLoose = await getCachedMetadataLoose(song.uri);
+            if (cachedLoose) {
+              set((prev) => ({
+                files: prev.files.map((f) =>
+                  f.uri === song.uri ? { ...f, ...cachedLoose, index: idx } : f
+                ),
+              }));
+              fetched.add(song.uri);
+              return;
+            }
+          }
+
           const tags = await readTagsForContentUri(song.uri, cacheDir);
+
+          const merged: Song = { ...song, ...tags, index: idx };
+
+          if (modificationTime) {
+            await setCachedMetadata(song.uri, modificationTime, merged);
+          } else {
+            await setCachedMetadataLoose(song.uri, merged);
+          }
+
           set((prev) => ({
             files: prev.files.map((f) =>
-              f.uri === song.uri ? { ...f, ...tags, index: idx } : f
+              f.uri === song.uri ? { ...f, ...tags } : f
             ),
           }));
+          fetched.add(song.uri);
         } catch (err) {
           console.warn("Metadata parse failed:", err);
+        } finally {
+          inflight.delete(song.uri);
         }
       };
-      for (const [idx, song] of sortedList.entries()) {
-        await fetchMetadata(song, idx);
-        await new Promise((res) => setTimeout(res, 50));
-      }
+
+      const runPool = (list: Song[], concurrency: number) => {
+        let i = 0;
+        const worker = async () => {
+          while (i < list.length) {
+            const item = list[i++];
+            await fetchOne(item, item.index);
+          }
+        };
+
+        Array.from({ length: concurrency }).forEach(() => {
+          worker().catch((e) => console.warn("Metadata worker error:", e));
+        });
+      };
+
+      runPool(firstChunk, 4);
+      runPool(rest, 2);
     } catch (err) {
       console.error("pickFolder error:", err);
-    } finally {
       set({ isLoading: false });
     }
   },
-
   playFile: async (file: Song, duration?: number) => {
     const engine = get().engine;
     if (!engine) return;

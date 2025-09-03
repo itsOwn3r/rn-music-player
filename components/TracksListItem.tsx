@@ -7,16 +7,17 @@ export type TrackListItemProps = {
   handlePlaySong: (index: number) => void | Promise<void>;
   track: Song;
   isActive: boolean;
+  index: number;
 };
 
 const TracksListItem = memo(
-  ({ track, handlePlaySong, isActive }: TrackListItemProps) => {
+  ({ track, handlePlaySong, isActive, index }: TrackListItemProps) => {
     // const isActiveTrack = track?.index === currentSongIndex;
     return (
       <TouchableHighlight
         className="px-4 py-2"
         onPress={() => {
-          handlePlaySong(track.index);
+          handlePlaySong(index);
         }}
       >
         <View className=" flex-row items-center pr-5" style={{ columnGap: 15 }}>

@@ -16,7 +16,7 @@ const ItemDivider = () => (
 const TracksList = ({ tracks, ...rest }: TracksListProps) => {
   const playSong = usePlayerStore((s) => s.playSong);
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
-  console.log("What");
+
   const handlePlaySong = async (index: number) => {
     await playSong(index);
     router.push("/Playing"); // navigate to Playing screen
@@ -27,6 +27,7 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
       <View className="flex-1 justify-center items-center px-8">
         <View className="bg-neutral-800 px-4 py-2 rounded-lg justify-center">
           <TracksListItem
+            index={0}
             handlePlaySong={() => {}}
             track={{
               title: "No results found",
@@ -45,17 +46,20 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
     );
   }
 
+  console.log("tracks ", tracks);
+
   return (
     <FlatList
       className="flex-1 size-full"
       data={tracks} // ✅ always tracks
       keyExtractor={(item) => item.id ?? item.uri} // ✅ stable keys
       ItemSeparatorComponent={ItemDivider}
-      renderItem={({ item: track }) => (
+      renderItem={({ item: track, index }) => (
         <TracksListItem
+          index={index}
           track={track}
-          handlePlaySong={() => handlePlaySong(track.index)}
-          isActive={track.index === currentSongIndex} // boolean only
+          handlePlaySong={() => handlePlaySong(index)}
+          isActive={index === currentSongIndex} // boolean only
         />
       )}
       {...rest}
