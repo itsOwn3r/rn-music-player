@@ -6,6 +6,8 @@ node_modules/
 data/music.ts
 assets/data
 android
+build
+my-app-key.keystore
 
 # Expo
 .expo/
