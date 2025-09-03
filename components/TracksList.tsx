@@ -1,34 +1,45 @@
+import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { Song } from "@/types/types";
+import { router } from "expo-router";
 import React from "react";
 import { FlatList, FlatListProps, View } from "react-native";
-import { Track } from "react-native-track-player";
 import TracksListItem from "./TracksListItem";
 
-export type TracksListProps = Partial<FlatListProps<Track>> & {
-  tracks: Track[];
+export type TracksListProps = Partial<FlatListProps<Song>> & {
+  tracks: Song[];
 };
 
 const ItemDivider = () => (
   <View className="opacity-30 border-[#9ca3af88] border my-[5px] ml-[0px]" />
 );
 
-const TracksList = ({ ...FlatListProps }: TracksListProps) => {
-  const searchData = FlatListProps.extraData;
+const TracksList = ({ tracks, ...rest }: TracksListProps) => {
+  const playSong = usePlayerStore((s) => s.playSong);
+  const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
+  console.log("What");
+  const handlePlaySong = async (index: number) => {
+    await playSong(index);
+    router.push("/Playing"); // navigate to Playing screen
+  };
 
-  if (searchData?.length === 0) {
+  if (!tracks || tracks.length === 0) {
     return (
       <View className="flex-1 justify-center items-center px-8">
         <View className="bg-neutral-800 px-4 py-2 rounded-lg justify-center">
-          <View className="flex-row" style={{ columnGap: 10 }}>
-            <View>
-              <TracksListItem
-                track={{
-                  title: "No results found",
-                  artist: "Try a different search term",
-                  image: null,
-                }}
-              />
-            </View>
-          </View>
+          <TracksListItem
+            handlePlaySong={() => {}}
+            track={{
+              title: "No results found",
+              artist: "Try a different search term",
+              coverArt: null,
+              uri: "",
+              filename: "",
+              album: "",
+              index: 0,
+              duration: 0,
+            }}
+            isActive={false}
+          />
         </View>
       </View>
     );
@@ -37,10 +48,17 @@ const TracksList = ({ ...FlatListProps }: TracksListProps) => {
   return (
     <FlatList
       className="flex-1 size-full"
-      data={searchData ? searchData : FlatListProps.tracks}
+      data={tracks} // ✅ always tracks
+      keyExtractor={(item) => item.id ?? item.uri} // ✅ stable keys
       ItemSeparatorComponent={ItemDivider}
-      renderItem={({ item: track }) => <TracksListItem track={track} />}
-      {...FlatListProps}
+      renderItem={({ item: track }) => (
+        <TracksListItem
+          track={track}
+          handlePlaySong={() => handlePlaySong(track.index)}
+          isActive={track.index === currentSongIndex} // boolean only
+        />
+      )}
+      {...rest}
     />
   );
 };

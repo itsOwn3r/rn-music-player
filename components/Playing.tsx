@@ -1,40 +1,33 @@
 import coverImage from "@/assets/placeholder2.jpg";
 import formatDuration from "@/tools/formatDuration";
-import { Song } from "@/types/types";
+import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import Slider from "@react-native-community/slider";
+import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Text, View } from "react-native";
 import NeumorphicButton from "./NeumorphicButton";
 
-interface Props {
-  setTabSelected: React.Dispatch<React.SetStateAction<"list" | "playing">>;
-  playSong: (number: number) => void;
-  currentSongIndex: number;
-  playPauseMusic: () => void;
-  duration: number;
-  position: number;
-  handleChangeSongPosition: (position: number) => void;
-  isPlaying: boolean;
-  currentSong: Song | null;
-}
+const Playing = () => {
+  const router = useRouter();
 
-const Playing = ({
-  setTabSelected,
-  playSong,
-  currentSongIndex,
-  playPauseMusic,
-  duration,
-  position,
-  handleChangeSongPosition,
-  isPlaying,
-  currentSong,
-}: Props) => {
+  const {
+    currentSong,
+    currentSongIndex,
+    isPlaying,
+    duration,
+    position,
+    playPauseMusic,
+    playSong,
+    handleChangeSongPosition,
+  } = usePlayerStore();
+
   return (
-    <View className="h-screen">
+    <View className="h-screen bg-black">
+      {/* Header */}
       <View className="flex-row justify-between items-center mx-4 mt-7">
         <NeumorphicButton
           icon="arrow-back"
-          onPress={() => {}}
+          onPress={() => router.back()} // go back to Songs tab
           style="bg-gray-700 p-4"
         />
         <Text className="text-center text-white font-semibold text-sm uppercase">
@@ -42,10 +35,12 @@ const Playing = ({
         </Text>
         <NeumorphicButton
           icon="menu"
-          onPress={() => setTabSelected("list")}
+          onPress={() => router.back()} // same as back for now
           style="bg-gray-700 p-4"
         />
       </View>
+
+      {/* Cover Art */}
       <View
         className={`items-center mt-14 rounded-full border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
       >
@@ -60,6 +55,7 @@ const Playing = ({
         />
       </View>
 
+      {/* Song Info */}
       <View className="mt-14">
         <Text className="text-center text-4xl text-white font-semibold mb-1">
           {currentSong ? currentSong.title : "Song Title"}
@@ -69,6 +65,7 @@ const Playing = ({
         </Text>
       </View>
 
+      {/* Progress Bar */}
       <View className="w-full flex justify-center text-center items-center mb-4 mt-14 px-7">
         <View className="w-[95%]">
           <Slider
@@ -84,11 +81,13 @@ const Playing = ({
         </View>
       </View>
 
+      {/* Time Labels */}
       <View className="flex-row justify-between mt-2 px-7">
         <Text className="text-gray-400">{formatDuration(position)}</Text>
         <Text className="text-gray-400">{formatDuration(duration)}</Text>
       </View>
 
+      {/* Controls */}
       <View className="flex flex-row justify-evenly mx-7 items-center">
         <NeumorphicButton
           icon="play-skip-back"
@@ -97,7 +96,7 @@ const Playing = ({
         />
         <NeumorphicButton
           icon={isPlaying ? "pause" : "play"}
-          onPress={() => playPauseMusic()}
+          onPress={playPauseMusic}
           style="bg-orange-800 p-4"
         />
         <NeumorphicButton
