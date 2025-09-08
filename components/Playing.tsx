@@ -5,6 +5,7 @@ import Slider from "@react-native-community/slider";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Text, View } from "react-native";
+import TextTicker from "react-native-text-ticker";
 import NeumorphicButton from "./NeumorphicButton";
 
 const Playing = () => {
@@ -56,11 +57,23 @@ const Playing = () => {
       </View>
 
       {/* Song Info */}
-      <View className="mt-14">
-        <Text className="text-center text-4xl text-white font-semibold mb-1">
-          {currentSong ? currentSong.title : "Song Title"}
-        </Text>
-        <Text className="text-center text-sm text-gray-400 font-semibold mb-1">
+      <View className="mt-14 w-full flex justify-center relative items-center">
+        {currentSong ? (
+          <TextTicker
+            duration={11000}
+            loop
+            bounce
+            scroll
+            repeatSpacer={50}
+            className="text-2xl font-bold px-3 text-white"
+            marqueeDelay={2000}
+          >
+            {currentSong.title}
+          </TextTicker>
+        ) : (
+          "Song Title"
+        )}
+        <Text className="text-center text-base text-gray-400 font-semibold mb-1">
           {currentSong ? currentSong.artist : "Artist Name"}
         </Text>
       </View>
