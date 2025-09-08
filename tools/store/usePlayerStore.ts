@@ -248,7 +248,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     const selectedIndex = index < 0 ? 0 : index;
 
-    if (currentSongIndex - 1 === selectedIndex && position >= 5) {
+    if (selectedIndex >= files.length) {
+      await get().playFile(files[0]);
+      set({ currentSongIndex: 0 });
+    } else if (currentSongIndex - 1 === selectedIndex && position >= 5) {
       await engine.seekTo(0);
       set({ position: 0 });
     } else if (currentSongIndex === selectedIndex) {

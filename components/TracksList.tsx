@@ -46,13 +46,11 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
     );
   }
 
-  console.log("tracks ", tracks);
-
   return (
     <FlatList
       className="flex-1 size-full"
-      data={tracks} // ✅ always tracks
-      keyExtractor={(item) => item.id ?? item.uri} // ✅ stable keys
+      data={tracks}
+      keyExtractor={(item) => item.id ?? item.uri}
       ItemSeparatorComponent={ItemDivider}
       renderItem={({ item: track, index }) => (
         <TracksListItem
