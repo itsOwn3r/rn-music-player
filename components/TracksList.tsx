@@ -1,6 +1,6 @@
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React from "react";
 import { FlatList, FlatListProps, View } from "react-native";
 import TracksListItem from "./TracksListItem";
@@ -14,12 +14,19 @@ const ItemDivider = () => (
 );
 
 const TracksList = ({ tracks, ...rest }: TracksListProps) => {
+  const router = useRouter();
   const playSong = usePlayerStore((s) => s.playSong);
-  const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
+  const currentSong = usePlayerStore((s) => s.currentSong);
 
-  const handlePlaySong = async (index: number) => {
-    await playSong(index);
-    router.push("/Playing"); // navigate to Playing screen
+  const handlePlaySong = async (track: Song) => {
+    // get real index from full list
+    const allFiles = usePlayerStore.getState().files;
+    const realIndex = allFiles.findIndex((f) => f.uri === track.uri);
+
+    if (realIndex !== -1) {
+      await playSong(realIndex);
+      router.navigate("/Playing");
+    }
   };
 
   if (!tracks || tracks.length === 0) {
@@ -54,10 +61,10 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
       ItemSeparatorComponent={ItemDivider}
       renderItem={({ item: track, index }) => (
         <TracksListItem
-          index={index}
+          index={currentSong?.index || 0}
           track={track}
-          handlePlaySong={() => handlePlaySong(index)}
-          isActive={index === currentSongIndex} // boolean only
+          handlePlaySong={() => handlePlaySong(track)}
+          isActive={track.uri === currentSong?.uri} // boolean only
         />
       )}
       {...rest}

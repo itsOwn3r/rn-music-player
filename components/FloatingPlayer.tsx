@@ -1,6 +1,6 @@
 import coverImage from "@/assets/placeholder2.jpg";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
-import { router } from "expo-router";
+import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
@@ -15,6 +15,8 @@ const FloatingPlayer = () => {
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isPlaying = usePlayerStore((s) => s.isPlaying);
 
+  const router = useRouter();
+
   const insets = useSafeAreaInsets();
 
   if (!currentSong) {
@@ -27,7 +29,7 @@ const FloatingPlayer = () => {
       className={`w-[97%] z-50 absolute px-2 right-2 left-2 bottom-[48px] flex flex-1 flex-row justify-between items-center bg-[#252525] rounded-xl`}
     >
       <View className="flex flex-1 w-full flex-row px-2 items-center h-24">
-        <Pressable className="" onPress={() => router.push("/Playing")}>
+        <Pressable className="" onPress={() => router.navigate("/Playing")}>
           <Image
             source={
               currentSong?.coverArt ? { uri: currentSong.coverArt } : coverImage
@@ -41,7 +43,7 @@ const FloatingPlayer = () => {
 
         <Pressable
           className="ml-1.5 h-24 flex justify-center max-w-[50%]"
-          onPress={() => router.push("/Playing")}
+          onPress={() => router.navigate("/Playing")}
         >
           <View className="flex-1 justify-center flex-col text-white">
             <TextTicker

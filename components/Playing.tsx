@@ -22,6 +22,11 @@ const Playing = () => {
     handleChangeSongPosition,
   } = usePlayerStore();
 
+  // For Calling:
+  // <SafeAreaView>
+  //   <Playing />
+  // </SafeAreaView>
+
   return (
     <View className="h-screen bg-black">
       {/* Header */}
@@ -78,8 +83,13 @@ const Playing = () => {
         </Text>
       </View>
 
+      {/* Time Labels */}
+      <View className="flex-row justify-between px-7 mt-16">
+        <Text className="text-gray-400">{formatDuration(position)}</Text>
+        <Text className="text-gray-400">{formatDuration(duration)}</Text>
+      </View>
       {/* Progress Bar */}
-      <View className="w-full flex justify-center text-center items-center mb-4 mt-14 px-7">
+      <View className="w-full flex justify-center text-center items-center mb-4 px-7">
         <View className="w-[95%]">
           <Slider
             style={{ width: "100%", height: 40 }}
@@ -92,12 +102,6 @@ const Playing = () => {
             thumbTintColor="#e17645"
           />
         </View>
-      </View>
-
-      {/* Time Labels */}
-      <View className="flex-row justify-between mt-2 px-7">
-        <Text className="text-gray-400">{formatDuration(position)}</Text>
-        <Text className="text-gray-400">{formatDuration(duration)}</Text>
       </View>
 
       {/* Controls */}

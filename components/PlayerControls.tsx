@@ -3,11 +3,6 @@ import { FontAwesome6 } from "@expo/vector-icons";
 import React from "react";
 import { TouchableOpacity, View } from "react-native";
 
-type PlayerControlsProps = {
-  classNames?: string;
-  iconSize?: number;
-};
-
 type PlayerButtonsProps = {
   classNames?: string;
   iconSize?: number;
