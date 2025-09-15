@@ -63,6 +63,7 @@ type PlayerStore = {
   handleChangeSongPosition: (pos: number) => void;
   toggleShuffle: () => void;
   toggleRepeat: () => void;
+  rehydrateSettings: () => Promise<void>;
 };
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -292,15 +293,41 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     engine.seekTo(pos);
     set({ position: pos });
   },
-  toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),
+  toggleShuffle: () =>
+    set((state) => {
+      const newShuffle = !state.shuffle;
+      AsyncStorage.setItem("shuffle", JSON.stringify(newShuffle));
+      return { shuffle: newShuffle };
+    }),
   toggleRepeat: () =>
     set((state) => {
+      let next: PlayerStore["repeat"];
       if (state.repeat === "off") {
-        return { repeat: "all" };
+        next = "all";
       } else if (state.repeat === "all") {
-        return { repeat: "one" };
+        next = "one";
       } else {
-        return { repeat: "off" };
+        next = "off";
       }
+      AsyncStorage.setItem("repeat", next);
+      return { repeat: next };
     }),
+
+  rehydrateSettings: async () => {
+    try {
+      const [savedRepeat, savedShuffle] = await Promise.all([
+        AsyncStorage.getItem("repeat"),
+        AsyncStorage.getItem("shuffle"),
+      ]);
+
+      if (savedRepeat) {
+        set({ repeat: savedRepeat as PlayerStore["repeat"] });
+      }
+      if (savedShuffle) {
+        set({ shuffle: JSON.parse(savedShuffle) });
+      }
+    } catch (err) {
+      console.warn("Failed to rehydrate player settings:", err);
+    }
+  },
 }));

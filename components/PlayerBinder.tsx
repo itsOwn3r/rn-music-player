@@ -17,6 +17,12 @@ export default function PlayerBinder() {
 
   const frameRef = useRef<number | null>(null);
 
+  const rehydrateSettings = usePlayerStore((s) => s.rehydrateSettings);
+
+  useEffect(() => {
+    rehydrateSettings();
+  }, [rehydrateSettings]);
+
   // Bind engine once it’s available
   useEffect(() => {
     bindEngine(engine);
