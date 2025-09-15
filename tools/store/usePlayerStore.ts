@@ -63,6 +63,8 @@ type PlayerStore = {
   handleChangeSongPosition: (pos: number) => void;
   toggleShuffle: () => void;
   toggleRepeat: () => void;
+  volume: number;
+  setVolume: (val: number) => void;
   rehydrateSettings: () => Promise<void>;
 };
 
@@ -78,6 +80,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isLoading: true,
   shuffle: false,
   repeat: "off",
+  volume: 1,
 
   bindEngine: (engine) => set({ engine }),
   setProgress: (position, duration) =>
@@ -315,9 +318,10 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
   rehydrateSettings: async () => {
     try {
-      const [savedRepeat, savedShuffle] = await Promise.all([
+      const [savedRepeat, savedShuffle, savedVolume] = await Promise.all([
         AsyncStorage.getItem("repeat"),
         AsyncStorage.getItem("shuffle"),
+        AsyncStorage.getItem("volume"),
       ]);
 
       if (savedRepeat) {
@@ -326,8 +330,25 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       if (savedShuffle) {
         set({ shuffle: JSON.parse(savedShuffle) });
       }
+      if (savedVolume) {
+        const vol = JSON.parse(savedVolume);
+        set({ volume: vol });
+        const engine = get().engine;
+        if (engine && "setVolume" in engine) {
+          (engine as any).setVolume(vol);
+        }
+      }
     } catch (err) {
       console.warn("Failed to rehydrate player settings:", err);
+    }
+  },
+  setVolume: (val: number) => {
+    AsyncStorage.setItem("volume", JSON.stringify(val));
+    set({ volume: val });
+    const engine = get().engine;
+    if (engine && "setVolume" in engine) {
+      // expo-audio engine has setVolume
+      (engine as any).setVolume(val);
     }
   },
 }));

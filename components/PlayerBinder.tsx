@@ -12,12 +12,17 @@ export default function PlayerBinder() {
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const shuffle = usePlayerStore((s) => s.shuffle);
   const repeat = usePlayerStore((s) => s.repeat);
+  const volume = usePlayerStore((s) => s.volume);
   const playSong = usePlayerStore((s) => s.playSong);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
 
   const frameRef = useRef<number | null>(null);
 
   const rehydrateSettings = usePlayerStore((s) => s.rehydrateSettings);
+
+  useEffect(() => {
+    engine.volume = volume;
+  }, [engine, volume]);
 
   useEffect(() => {
     rehydrateSettings();

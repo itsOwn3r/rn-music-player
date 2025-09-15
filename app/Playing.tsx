@@ -107,7 +107,7 @@ export default function PlayingScreen() {
         >
           <DismissPlayerSymbol />
           {/* Your player content goes here */}
-          <View className="mt-16">
+          <View className="mt-20">
             <View
               className={`items-center rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
             >
@@ -170,7 +170,7 @@ export default function PlayingScreen() {
             <ProgressBar />
           </View>
           {/* Controls */}
-          <View className="w-full flex flex-row justify-evenly items-center mt-2">
+          <View className="w-full flex flex-row justify-evenly items-center mt-4">
             <View className="flex-row items-center justify-center">
               <ShuffleHandler iconSize={30} />
             </View>
