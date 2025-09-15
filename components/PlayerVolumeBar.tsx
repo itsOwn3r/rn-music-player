@@ -3,7 +3,7 @@ import { Text, View } from "react-native";
 
 const PlayerVolumeBar = () => {
   return (
-    <View>
+    <View className="flex-row justify-center items-center">
       <Text>PlayerVolumeBar</Text>
     </View>
   );

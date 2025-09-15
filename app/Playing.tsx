@@ -1,6 +1,12 @@
 import coverImage from "@/assets/placeholder2.jpg";
 import DismissPlayerSymbol from "@/components/DismissPlayerSymbol";
-import NeumorphicButton from "@/components/NeumorphicButton";
+import {
+  PlayPauseButton,
+  RepeatHandler,
+  ShuffleHandler,
+  SkipToLastButton,
+  SkipToNextButton,
+} from "@/components/PlayerControls";
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
@@ -36,9 +42,9 @@ export default function PlayingScreen() {
 
   const currentSong = usePlayerStore((s) => s.currentSong);
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  // const isPlaying = usePlayerStore((s) => s.isPlaying);
 
-  const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
+  // const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
   const playSong = usePlayerStore((s) => s.playSong);
 
   // Pan gesture
@@ -164,22 +170,29 @@ export default function PlayingScreen() {
             <ProgressBar />
           </View>
           {/* Controls */}
-          <View className="flex flex-row justify-evenly mx-7 items-center mt-2">
-            <NeumorphicButton
-              icon="play-skip-back"
-              onPress={() => playSong(currentSongIndex - 1)}
-              style="bg-gray-700 p-4"
-            />
-            <NeumorphicButton
-              icon={isPlaying ? "pause" : "play"}
-              onPress={playPauseMusic}
-              style="bg-orange-800 p-4"
-            />
-            <NeumorphicButton
-              icon="play-skip-forward"
-              onPress={() => playSong(currentSongIndex + 1)}
-              style="bg-gray-700 p-4"
-            />
+          <View className="w-full flex flex-row justify-evenly items-center mt-2">
+            <View className="flex-row items-center justify-center">
+              <ShuffleHandler iconSize={30} />
+            </View>
+
+            <View className="flex-row items-center justify-center">
+              <SkipToLastButton iconSize={30} />
+            </View>
+
+            <View className="flex-row items-center justify-center">
+              <PlayPauseButton iconSize={30} />
+            </View>
+
+            <View className="flex-row items-center justify-center">
+              <SkipToNextButton iconSize={30} />
+            </View>
+
+            <View className="flex-row items-center justify-center">
+              <RepeatHandler
+                iconSize={30}
+                classNames="flex flex-row justify-center items-center"
+              />
+            </View>
           </View>
           <PlayerVolumeBar />
         </Animated.View>

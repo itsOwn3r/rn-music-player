@@ -46,6 +46,10 @@ type PlayerStore = {
   duration: number;
   isLoading: boolean;
 
+  shuffle: boolean;
+
+  repeat: "off" | "all" | "one";
+
   // engine binding + progress
   bindEngine: (engine: AudioEngine) => void;
   setProgress: (position: number, duration: number) => void;
@@ -55,7 +59,10 @@ type PlayerStore = {
   playFile: (file: Song, duration?: number) => Promise<void>;
   playSong: (index: number) => Promise<void>;
   playPauseMusic: () => Promise<void>;
+  setIsPlaying: (val: boolean) => void;
   handleChangeSongPosition: (pos: number) => void;
+  toggleShuffle: () => void;
+  toggleRepeat: () => void;
 };
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -68,6 +75,8 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   position: 0,
   duration: 1,
   isLoading: true,
+  shuffle: false,
+  repeat: "off",
 
   bindEngine: (engine) => set({ engine }),
   setProgress: (position, duration) =>
@@ -275,6 +284,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       set({ isPlaying: true });
     }
   },
+  setIsPlaying: (val: boolean) => set({ isPlaying: val }),
 
   handleChangeSongPosition: (pos: number) => {
     const engine = get().engine;
@@ -282,4 +292,15 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     engine.seekTo(pos);
     set({ position: pos });
   },
+  toggleShuffle: () => set((state) => ({ shuffle: !state.shuffle })),
+  toggleRepeat: () =>
+    set((state) => {
+      if (state.repeat === "off") {
+        return { repeat: "all" };
+      } else if (state.repeat === "all") {
+        return { repeat: "one" };
+      } else {
+        return { repeat: "off" };
+      }
+    }),
 }));
