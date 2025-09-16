@@ -1,21 +1,23 @@
 import TracksList from "@/components/TracksList";
+import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
-import React, { useMemo, useRef, useState } from "react";
+import React, { useMemo, useState } from "react";
 import { Animated, TextInput, TouchableOpacity, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 interface Props {
-  files: Song[];
   currentSong: Song | null;
 }
 
-const MusicList = ({ files, currentSong }: Props) => {
+const MusicList = ({ currentSong }: Props) => {
+  const files = usePlayerStore((s) => s.files);
+
   const [search, setSearch] = useState("");
 
   // Filtered tracks based on search
   const filteredTracks = useMemo(() => {
-    if (search.trim() === "") return [];
+    if (search.trim() === "") return files;
     const lowerSearch = search.toLowerCase();
     return files.filter(
       (t) =>
@@ -25,27 +27,27 @@ const MusicList = ({ files, currentSong }: Props) => {
   }, [files, search]);
 
   // Animated value for header effects
-  const scrollY = useRef(new Animated.Value(0)).current;
+  // const scrollY = useRef(new Animated.Value(0)).current;
 
   // Safe area insets
   const insets = useSafeAreaInsets();
 
   // Track scroll offset
-  const scrollOffset = useRef(0);
+  // const scrollOffset = useRef(0);
 
   // Store scroll offset on scroll
-  const handleScroll = Animated.event(
-    [{ nativeEvent: { contentOffset: { y: scrollY } } }],
-    {
-      useNativeDriver: true,
-      listener: (event: { nativeEvent: { contentOffset: { y: number } } }) => {
-        scrollOffset.current = event.nativeEvent.contentOffset.y;
-      },
-    }
-  );
+  // const handleScroll = Animated.event(
+  //   [{ nativeEvent: { contentOffset: { y: scrollY } } }],
+  //   {
+  //     useNativeDriver: true,
+  //     listener: (event: { nativeEvent: { contentOffset: { y: number } } }) => {
+  //       scrollOffset.current = event.nativeEvent.contentOffset.y;
+  //     },
+  //   }
+  // );
 
   // Optimize Animated FlatList rendering
-  const AnimatedTracksList = Animated.createAnimatedComponent(TracksList);
+  // const AnimatedTracksList = Animated.createAnimatedComponent(TracksList);
 
   return (
     <View className="flex-1 bg-black">
@@ -78,15 +80,15 @@ const MusicList = ({ files, currentSong }: Props) => {
       </Animated.View>
 
       {/* Tracks List */}
-      <AnimatedTracksList
-        tracks={search.trim() ? filteredTracks : files} // ✅ full list OR filtered
+      <TracksList
+        tracks={filteredTracks} // ✅ full list OR filtered
         extraData={currentSong?.id} // ✅ force re-render only when playing song changes
         contentContainerStyle={{
           paddingTop: 72,
           paddingBottom: 128,
         }}
         scrollEventThrottle={16}
-        onScroll={handleScroll}
+        // onScroll={handleScroll}
         removeClippedSubviews
         initialNumToRender={12}
         windowSize={11}

@@ -3,6 +3,7 @@ import { Song } from "@/types/types";
 import { useRouter } from "expo-router";
 import React from "react";
 import { FlatList, FlatListProps, View } from "react-native";
+import QueueControls from "./QueueControls";
 import TracksListItem from "./TracksListItem";
 
 export type TracksListProps = Partial<FlatListProps<Song>> & {
@@ -59,9 +60,10 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
       data={tracks}
       keyExtractor={(item) => item.id ?? item.uri}
       ItemSeparatorComponent={ItemDivider}
+      ListHeaderComponent={<QueueControls tracks={tracks} />}
       renderItem={({ item: track, index }) => (
         <TracksListItem
-          index={currentSong?.index || 0}
+          index={index}
           track={track}
           handlePlaySong={() => handlePlaySong(track)}
           isActive={track.uri === currentSong?.uri} // boolean only

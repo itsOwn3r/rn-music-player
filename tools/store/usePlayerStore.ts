@@ -57,7 +57,11 @@ type PlayerStore = {
   // actions
   pickFolder: () => Promise<void>;
   playFile: (file: Song, duration?: number) => Promise<void>;
-  playSong: (index: number) => Promise<void>;
+  playSong: (
+    index: number,
+    backwardOrForward?: "backward" | "forward",
+    isRandom?: boolean
+  ) => Promise<void>;
   playPauseMusic: () => Promise<void>;
   setIsPlaying: (val: boolean) => void;
   handleChangeSongPosition: (pos: number) => void;
@@ -252,7 +256,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     });
   },
 
-  playSong: async (index: number) => {
+  playSong: async (
+    index: number,
+    backwardOrForward?: "backward" | "forward",
+    isRandom?: boolean
+  ) => {
     const engine = get().engine;
     if (!engine) return;
 
@@ -264,7 +272,11 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     if (selectedIndex >= files.length) {
       await get().playFile(files[0]);
       set({ currentSongIndex: 0 });
-    } else if (currentSongIndex - 1 === selectedIndex && position >= 5) {
+    } else if (
+      (currentSongIndex - 1 === selectedIndex ||
+        (isRandom && backwardOrForward === "backward")) &&
+      position >= 5
+    ) {
       await engine.seekTo(0);
       set({ position: 0 });
     } else if (currentSongIndex === selectedIndex) {

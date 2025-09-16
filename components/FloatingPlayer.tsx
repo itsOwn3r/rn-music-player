@@ -3,7 +3,6 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TextTicker from "react-native-text-ticker";
 import {
   PlayPauseButton,
@@ -13,11 +12,11 @@ import {
 
 const FloatingPlayer = () => {
   const currentSong = usePlayerStore((s) => s.currentSong);
-  const isPlaying = usePlayerStore((s) => s.isPlaying);
+  // const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const router = useRouter();
 
-  const insets = useSafeAreaInsets();
+  // const insets = useSafeAreaInsets();
 
   if (!currentSong) {
     return null;

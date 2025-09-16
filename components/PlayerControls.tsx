@@ -6,11 +6,13 @@ import { Text, TouchableOpacity, View } from "react-native";
 type PlayerButtonsProps = {
   classNames?: string;
   iconSize?: number;
+  text?: string;
 };
 
 export const PlayPauseButton = ({
   classNames,
   iconSize,
+  text,
 }: PlayerButtonsProps) => {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
@@ -29,12 +31,23 @@ export const PlayPauseButton = ({
   };
   return (
     <TouchableOpacity onPress={handlePlayPause} className={classNames}>
-      <View>
+      <View
+        className={
+          text
+            ? "p-3 bg-[rgba(47,47,47,0.5)] rounded-lg flex-row justify-center items-center gap-x-2 w-full"
+            : ""
+        }
+      >
         <FontAwesome6
           name={isPlaying ? "pause" : "play"}
           size={iconSize}
           color="#fff"
         />
+        {text && (
+          <Text className="text-white font-semibold text-lg text-center">
+            {isPlaying ? "Pause" : "Play"}
+          </Text>
+        )}
       </View>
     </TouchableOpacity>
   );
@@ -46,9 +59,16 @@ export const SkipToLastButton = ({
 }: PlayerButtonsProps) => {
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const playSong = usePlayerStore((s) => s.playSong);
+  const files = usePlayerStore((s) => s.files);
+
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const randomIndex = Math.floor(Math.random() * files.length);
+
+  const nextIndex = shuffle ? randomIndex : currentSongIndex - 1;
+
   return (
     <TouchableOpacity
-      onPress={() => playSong(currentSongIndex - 1)}
+      onPress={() => playSong(nextIndex, "backward", true)}
       className={classNames}
     >
       <FontAwesome6 name="backward-step" size={iconSize} color="#fff" />
@@ -62,9 +82,16 @@ export const SkipToNextButton = ({
 }: PlayerButtonsProps) => {
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const playSong = usePlayerStore((s) => s.playSong);
+
+  const files = usePlayerStore((s) => s.files);
+
+  const shuffle = usePlayerStore((s) => s.shuffle);
+  const randomIndex = Math.floor(Math.random() * files.length);
+
+  const nextIndex = shuffle ? randomIndex : currentSongIndex + 1;
   return (
     <TouchableOpacity
-      onPress={() => playSong(currentSongIndex + 1)}
+      onPress={() => playSong(nextIndex)}
       className={classNames}
     >
       <FontAwesome6 name="forward-step" size={iconSize} color="#fff" />
