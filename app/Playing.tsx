@@ -41,11 +41,6 @@ export default function PlayingScreen() {
   const toggleFavorite = async () => {};
 
   const currentSong = usePlayerStore((s) => s.currentSong);
-  const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
-  // const isPlaying = usePlayerStore((s) => s.isPlaying);
-
-  // const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
-  const playSong = usePlayerStore((s) => s.playSong);
 
   // Pan gesture
   const panGesture = Gesture.Pan()

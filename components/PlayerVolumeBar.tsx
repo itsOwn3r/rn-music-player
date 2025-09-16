@@ -1,18 +1,12 @@
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
 import Slider from "@react-native-community/slider";
-import React, { useCallback, useState } from "react";
+import React, { useCallback } from "react";
 import { TouchableOpacity, View } from "react-native";
 
 const PlayerVolumeBar = () => {
   const volume = usePlayerStore((s) => s.volume);
   const setVolume = usePlayerStore((s) => s.setVolume);
-
-  const [tempVolume, setTempVolume] = useState(volume);
-
-  React.useEffect(() => {
-    setTempVolume(volume);
-  }, [volume]);
 
   const handleVolumeChange = useCallback(
     (type: "increase" | "decrease") => {
@@ -40,8 +34,7 @@ const PlayerVolumeBar = () => {
           style={{ flex: 1, height: 40 }}
           minimumValue={0}
           maximumValue={1}
-          value={tempVolume}
-          onValueChange={(val) => setTempVolume(val)}
+          value={volume}
           onSlidingComplete={(val) => setVolume(val)}
           minimumTrackTintColor="#e17645"
           maximumTrackTintColor="#4a4a4a"
