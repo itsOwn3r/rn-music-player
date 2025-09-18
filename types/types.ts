@@ -18,3 +18,16 @@ export type Artist = {
   image: string | null;
   songs: Song[];
 };
+
+export type Playlist = {
+  id: string;
+  name: string;
+  userId: string;
+  userName: string;
+  songs: Song[];
+  createdAt: number;
+  updatedAt: number;
+  coverArts: string[];
+  description?: string;
+  duration: number;
+};

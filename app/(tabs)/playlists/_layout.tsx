@@ -15,6 +15,14 @@ const PlaylistsScreenLayout = () => {
             headerTitleAlign: "center",
           }}
         />
+        <Stack.Screen
+          name="[name]"
+          options={({ route }: { route: { params?: { name?: string } } }) => ({
+            ...(StackScreenWithSearchBar ?? {}),
+            headerTitle: route.params?.name ?? "Playlist",
+            headerTitleAlign: "center",
+          })}
+        />
       </Stack>
     </View>
   );
