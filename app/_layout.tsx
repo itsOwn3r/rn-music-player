@@ -1,12 +1,27 @@
 import PlayerBinder from "@/components/PlayerBinder";
+import * as NavigationBar from "expo-navigation-bar";
 import { Stack } from "expo-router";
 import React from "react";
 import { StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
+
 import "../global.css";
 
 export default function Layout() {
+  const visibility = NavigationBar.useVisibility();
+
+  React.useEffect(() => {
+    if (visibility === "visible") {
+      const interval = setTimeout(() => {
+        NavigationBar.setVisibilityAsync("visible");
+      }, /* 3 Seconds */ 3000);
+
+      return () => {
+        clearTimeout(interval);
+      };
+    }
+  }, [visibility]);
   return (
     <SafeAreaProvider>
       <GestureHandlerRootView style={{ flex: 1 }}>

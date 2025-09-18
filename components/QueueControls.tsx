@@ -13,7 +13,7 @@ const QueueControls = ({ tracks }: { tracks: Song[] }) => {
     playSong(randomIndex);
   };
   return (
-    <View className="flex flex-row items-center justify-center gap-x-8 w-full mt-3 mb-2">
+    <View className="flex flex-row items-center justify-center gap-x-8 w-full mb-2 ">
       {/* Play button */}
       <View className="w-1/3">
         <PlayPauseButton iconSize={22} text="Play Or Pause" />

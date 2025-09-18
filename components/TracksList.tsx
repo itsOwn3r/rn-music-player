@@ -8,13 +8,18 @@ import TracksListItem from "./TracksListItem";
 
 export type TracksListProps = Partial<FlatListProps<Song>> & {
   tracks: Song[];
+  hideQueueControls?: boolean;
 };
 
 const ItemDivider = () => (
   <View className="opacity-30 border-[#9ca3af88] border my-[5px] ml-[0px]" />
 );
 
-const TracksList = ({ tracks, ...rest }: TracksListProps) => {
+const TracksList = ({
+  tracks,
+  hideQueueControls,
+  ...rest
+}: TracksListProps) => {
   const router = useRouter();
   const playSong = usePlayerStore((s) => s.playSong);
   const currentSong = usePlayerStore((s) => s.currentSong);
@@ -60,7 +65,10 @@ const TracksList = ({ tracks, ...rest }: TracksListProps) => {
       data={tracks}
       keyExtractor={(item) => item.id ?? item.uri}
       ItemSeparatorComponent={ItemDivider}
-      ListHeaderComponent={<QueueControls tracks={tracks} />}
+      ListHeaderComponent={
+        !hideQueueControls ? <QueueControls tracks={tracks} /> : null
+      }
+      // ListHeaderComponentStyle={{ margin: 0, padding: 0 }}
       renderItem={({ item: track, index }) => (
         <TracksListItem
           index={index}

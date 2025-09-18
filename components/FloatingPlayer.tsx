@@ -3,6 +3,7 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { useRouter } from "expo-router";
 import React from "react";
 import { Image, Pressable, Text, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TextTicker from "react-native-text-ticker";
 import {
   PlayPauseButton,
@@ -16,16 +17,24 @@ const FloatingPlayer = () => {
 
   const router = useRouter();
 
-  // const insets = useSafeAreaInsets();
+  const insets = useSafeAreaInsets();
 
   if (!currentSong) {
     return null;
   }
 
+  const TAB_BAR_HEIGHT = 50; // match your tab bar style
+
   return (
     <View
-      //   style={{ bottom: insets.bottom }}
-      className={`w-[97%] z-50 absolute px-2 right-2 left-2 bottom-[48px] flex flex-1 flex-row justify-between items-center bg-[#252525] rounded-xl`}
+      style={{
+        position: "absolute",
+        left: 8,
+        right: 8,
+        bottom: insets.bottom + TAB_BAR_HEIGHT + 8, // ✅ safe offset
+        zIndex: 50,
+      }}
+      className="px-2 flex flex-1 flex-row justify-between items-center bg-[#252525] rounded-xl"
     >
       <View className="flex flex-1 w-full flex-row px-2 items-center h-24">
         <Pressable className="" onPress={() => router.navigate("/Playing")}>

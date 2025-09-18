@@ -9,8 +9,11 @@ import {
 import { BlurView } from "expo-blur";
 import { Tabs } from "expo-router";
 import React from "react";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 const TabsNavigation = () => {
+  const insets = useSafeAreaInsets();
+
   return (
     <>
       <Tabs
@@ -27,6 +30,8 @@ const TabsNavigation = () => {
             borderTopRightRadius: 20,
             borderTopWidth: 0,
             paddingTop: 0,
+            paddingBottom: insets.bottom, // ✅ keep visible above system nav
+            height: 60 + insets.bottom, // ✅ make room for extra padding
             zIndex: 10,
             backgroundColor: "#000",
           },

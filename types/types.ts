@@ -12,3 +12,9 @@ export interface Song {
   duration: number | 0;
   id?: string | null;
 }
+
+export type Artist = {
+  name: string;
+  image: string | null;
+  songs: Song[];
+};

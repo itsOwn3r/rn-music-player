@@ -3,7 +3,7 @@ import { NativeStackNavigationOptions } from "@react-navigation/native-stack";
 export const StackScreenWithSearchBar: NativeStackNavigationOptions = {
   headerLargeTitle: true,
   headerTitleStyle: {
-    fontSize: 32, // Adjust to your desired large title size
+    fontSize: 32,
     fontWeight: "bold",
     color: "#fff",
   },

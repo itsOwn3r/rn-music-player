@@ -4,7 +4,10 @@ import { Song } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
 import React, { useMemo, useState } from "react";
 import { Animated, TextInput, TouchableOpacity, View } from "react-native";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 
 interface Props {
   currentSong: Song | null;
@@ -50,7 +53,7 @@ const MusicList = ({ currentSong }: Props) => {
   // const AnimatedTracksList = Animated.createAnimatedComponent(TracksList);
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black">
       {/* Search Bar */}
       <Animated.View
         className="absolute left-0 right-0 bg-neutral-900 px-4 pb-2 z-10"
@@ -93,7 +96,7 @@ const MusicList = ({ currentSong }: Props) => {
         initialNumToRender={12}
         windowSize={11}
       />
-    </View>
+    </SafeAreaView>
   );
 };
 
