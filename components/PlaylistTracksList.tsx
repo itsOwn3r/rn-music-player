@@ -10,6 +10,7 @@ import {
 
 import { Playlist } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
@@ -26,9 +27,19 @@ export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
         t?.album?.toLowerCase().includes(lowerSearch)
     );
   }, [playlist.songs, search]);
-
+  const insets = useSafeAreaInsets();
   return (
-    <View className="flex-1">
+    <View
+      className="flex-1"
+      style={{
+        // paddingBottom: insets.bottom + 150,
+        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
+        paddingTop: insets.top,
+        paddingBottom: insets.bottom + 10,
+        elevation: 4,
+        flex: 1,
+      }}
+    >
       <View className="absolute left-0 right-0 bg-neutral-900 px-4 pb-2 z-10">
         <View className="flex-row items-center w-full bg-neutral-800 rounded-lg px-3">
           <TextInput

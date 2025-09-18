@@ -37,8 +37,12 @@ const PlaylistScreen = () => {
 
   return (
     <SafeAreaView
-      className="flex-1 bg-[#000]"
-      style={{ paddingBottom: insets.bottom + 140, elevation: 8 }}
+      className="flex-1 bg-[#000] px-5"
+      style={{
+        paddingBottom: insets.bottom === 0 ? 10 : insets.bottom - 20,
+        // paddingTop: insets.top === 0 ? 30 : insets.top,
+        elevation: 2,
+      }}
     >
       <View className="absolute left-0 right-0 bg-neutral-900 px-4 pb-2 z-10">
         <View className="flex-row items-center w-full bg-neutral-800 rounded-lg px-3">

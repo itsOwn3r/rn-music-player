@@ -17,7 +17,7 @@ const ArtistsScreenLayout = () => {
         name="[name]"
         options={({ route }: { route: { params?: { name?: string } } }) => ({
           ...(StackScreenWithSearchBar ?? {}),
-          headerTitle: route.params?.name ?? "Artist",
+          headerTitle: route?.params?.name ?? "Artist",
           headerTitleAlign: "center",
         })}
       />

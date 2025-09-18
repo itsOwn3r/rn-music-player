@@ -53,7 +53,10 @@ const MusicList = ({ currentSong }: Props) => {
   // const AnimatedTracksList = Animated.createAnimatedComponent(TracksList);
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView
+      className="flex-1 bg-black"
+      style={{ paddingBottom: insets.bottom + 30 }}
+    >
       {/* Search Bar */}
       <Animated.View
         className="absolute left-0 right-0 bg-neutral-900 px-4 pb-2 z-10"

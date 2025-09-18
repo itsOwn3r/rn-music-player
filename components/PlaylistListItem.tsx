@@ -2,7 +2,6 @@ import { Playlist } from "@/types/types";
 import { AntDesign } from "@expo/vector-icons";
 import {
   Image,
-  StyleSheet,
   Text,
   TouchableHighlight,
   TouchableHighlightProps,
@@ -19,25 +18,19 @@ export const PlaylistListItem = ({
 }: PlaylistListItemProps) => {
   return (
     <TouchableHighlight activeOpacity={0.8} {...props}>
-      <View style={styles.playlistItemContainer}>
-        <View>
-          <Image
-            source={{
-              uri: playlist.coverArts[0],
-            }}
-            style={styles.playlistArtworkImage}
-          />
-        </View>
+      <View className="flex-row items-center pr-[90px] gap-x-3.5">
+        {/* Artwork */}
+        <Image
+          source={{ uri: playlist.coverArts[0] }}
+          className="w-[70px] h-[70px] rounded-lg"
+        />
 
-        <View
-          style={{
-            flexDirection: "row",
-            justifyContent: "space-between",
-            alignItems: "center",
-            width: "100%",
-          }}
-        >
-          <Text numberOfLines={1} style={styles.playlistNameText}>
+        {/* Name + Arrow */}
+        <View className="flex-row items-center justify-between w-full">
+          <Text
+            numberOfLines={1}
+            className="text-white text-lg font-semibold max-w-[80%]"
+          >
             {playlist.name}
           </Text>
 
@@ -45,30 +38,10 @@ export const PlaylistListItem = ({
             name="right"
             size={16}
             color={"#fff"}
-            style={{ opacity: 0.5 }}
+            className="opacity-50"
           />
         </View>
       </View>
     </TouchableHighlight>
   );
 };
-
-const styles = StyleSheet.create({
-  playlistItemContainer: {
-    flexDirection: "row",
-    columnGap: 14,
-    alignItems: "center",
-    paddingRight: 90,
-  },
-  playlistArtworkImage: {
-    borderRadius: 8,
-    width: 70,
-    height: 70,
-  },
-  playlistNameText: {
-    color: "#fff",
-    fontSize: 17,
-    fontWeight: "600",
-    maxWidth: "80%",
-  },
-});

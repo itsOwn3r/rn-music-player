@@ -21,14 +21,15 @@ const PlaylistsList = ({
   scrollEnabled?: boolean;
 }) => {
   const insets = useSafeAreaInsets();
-
   return (
     <FlatList
-      className="flex-1 size-full mt-10"
+      className="flex-1 size-full mt-16"
       style={{
-        paddingBottom: insets.bottom + 90,
-        marginTop: insets.top + 60,
-        elevation: 12,
+        // paddingBottom: insets.bottom + 150,
+        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
+        // paddingTop: insets.top,
+        elevation: 4,
+        flex: 1,
       }}
       data={playlists}
       keyExtractor={(item) => item.id}

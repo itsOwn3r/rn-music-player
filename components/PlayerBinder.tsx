@@ -16,6 +16,13 @@ export default function PlayerBinder() {
   const playSong = usePlayerStore((s) => s.playSong);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
 
+  const pickFolder = usePlayerStore((s) => s.pickFolder);
+  //const isLoading = usePlayerStore((s) => s.isLoading);
+
+  useEffect(() => {
+    pickFolder();
+  }, []);
+
   const frameRef = useRef<number | null>(null);
 
   const rehydrateSettings = usePlayerStore((s) => s.rehydrateSettings);
@@ -94,4 +101,5 @@ export default function PlayerBinder() {
   ]);
 
   return null;
+  // if (isLoading) return <LoadingScreen />;
 }

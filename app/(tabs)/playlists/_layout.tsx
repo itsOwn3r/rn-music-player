@@ -19,7 +19,7 @@ const PlaylistsScreenLayout = () => {
           name="[name]"
           options={({ route }: { route: { params?: { name?: string } } }) => ({
             ...(StackScreenWithSearchBar ?? {}),
-            headerTitle: route.params?.name ?? "Playlist",
+            headerTitle: route?.params?.name ?? "Playlist",
             headerTitleAlign: "center",
           })}
         />
