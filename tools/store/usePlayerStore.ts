@@ -21,7 +21,7 @@ import { create } from "zustand";
 if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
 }
-
+let _lastQueueAdvance = 0;
 // Shape of the engine we expect from expo-audio
 type AudioEngine = {
   replace: (src: { uri: string }) => any;
@@ -62,6 +62,11 @@ type PlayerStore = {
     backwardOrForward?: "backward" | "forward",
     isRandom?: boolean
   ) => Promise<void>;
+  playSongWithUri: (
+    uri: string,
+    backwardOrForward?: "backward" | "forward",
+    isRandom?: boolean
+  ) => Promise<void>;
   playPauseMusic: () => Promise<void>;
   setIsPlaying: (val: boolean) => void;
   handleChangeSongPosition: (pos: number) => void;
@@ -73,6 +78,14 @@ type PlayerStore = {
   favorites: string[]; // store song IDs
   toggleFavorite: (uri: string) => void | null;
   isFavorite: (uri: string) => boolean;
+  queue: Song[]; // songs queued up
+  addToQueue: (songs: Song[]) => void;
+  removeFromQueue: (songId: string) => void;
+  clearQueue: () => void;
+  playAnotherSongInQueue: (
+    type: "next" | "previous",
+    method?: "button" | "update"
+  ) => Promise<void>;
 };
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -255,6 +268,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     set({
       isPlaying: true,
       currentSong: file,
+      currentSongIndex: file.index,
       duration: duration ?? engine.duration ?? 1,
     });
   },
@@ -287,6 +301,55 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       set({ isPlaying: true });
     } else {
       await get().playFile(files[selectedIndex]);
+      set({ currentSongIndex: selectedIndex });
+    }
+  },
+  playSongWithUri: async (
+    uri: string,
+    backwardOrForward?: "backward" | "forward",
+    isRandom?: boolean
+  ) => {
+    const engine = get().engine;
+    if (!engine) return;
+
+    const { files, currentSongIndex, position } = get();
+    if (!files.length) return;
+
+    const findSong = files.find((item, index) => {
+      if (item.uri === uri) {
+        // Create a copy of the item to avoid modifying the original array
+        const newItem = { ...item, index };
+
+        // Return the new object with the added index
+        return newItem;
+      }
+      return false; // Important: Return false to continue the search if not found
+    });
+    // console.log(findSong);
+
+    const selectedIndex =
+      typeof findSong?.index === "number" && findSong.index >= 0
+        ? findSong.index
+        : 0;
+
+    if (selectedIndex >= files.length || !findSong) {
+      await get().playFile(files[0]);
+      set({ currentSongIndex: 0 });
+    } else if (
+      (currentSongIndex - 1 === selectedIndex ||
+        (isRandom && backwardOrForward === "backward")) &&
+      position >= 5
+    ) {
+      await engine.seekTo(0);
+      set({ position: 0 });
+    } else if (currentSongIndex === selectedIndex) {
+      await engine.play(); // resume
+      set({ isPlaying: true });
+    } else {
+      await get().playFile(findSong);
+      console.log("selectedIndex ", selectedIndex);
+      console.log("files[selectedIndex]", files[selectedIndex]);
+      console.log("findSong.index", findSong.index);
       set({ currentSongIndex: selectedIndex });
     }
   },
@@ -346,6 +409,118 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
   isFavorite: (uri) => {
     return get().favorites.includes(uri);
   },
+  queue: [],
+
+  addToQueue: (songs) =>
+    set((state) => {
+      const isArray = Array.isArray(songs);
+      let newSongs: Song[] = isArray ? songs : [songs];
+
+      // Shuffle if enabled
+      if (state.shuffle) {
+        newSongs = newSongs
+          .map((s) => ({ ...s })) // clone
+          .sort(() => Math.random() - 0.5); // quick shuffle
+        // OR if you install lodash: lodashShuffle(newSongs)
+      }
+
+      // For repeat = "one": just repeat the currentSong, ignore queue additions
+      if (state.repeat === "one") {
+        return state;
+      }
+
+      return {
+        queue: [...state.queue, ...newSongs],
+      };
+    }),
+  removeFromQueue: (songId) =>
+    set((state) => ({
+      queue: state.queue.filter((s) => s.id !== songId),
+    })),
+
+  clearQueue: () => set({ queue: [] }),
+
+  playAnotherSongInQueue: async (
+    type: "next" | "previous",
+    method?: "button" | "update"
+  ) => {
+    const {
+      queue,
+      playFile,
+      repeat,
+      engine,
+      setIsPlaying,
+      currentSongIndex,
+      position,
+    } = get();
+
+    if (!queue.length) return;
+
+    // Guard against auto-advance firing too early
+    if (method === "update" && position < 10) return;
+
+    // Debounce multiple "update" triggers
+    const now = Date.now();
+    if (method === "update" && now - _lastQueueAdvance < 800) {
+      console.log("What");
+      return;
+    }
+    _lastQueueAdvance = now;
+
+    // Handle repeat-one
+    if (repeat === "one") {
+      engine?.seekTo(0);
+      engine?.play();
+      setIsPlaying(true);
+      return;
+    }
+
+    // Find where currentSongIndex sits inside the queue
+    const songIndexInQueue = queue.findIndex(
+      (song) => song.index === currentSongIndex
+    );
+
+    let nextIndex =
+      songIndexInQueue === -1
+        ? type === "next"
+          ? 0
+          : queue.length - 1
+        : type === "next"
+          ? songIndexInQueue + 1
+          : songIndexInQueue - 1;
+
+    // Handle overflow/underflow
+    if (nextIndex >= queue.length) {
+      if (repeat === "all") {
+        nextIndex = 0;
+      } else {
+        engine?.pause();
+        setIsPlaying(false);
+        return;
+      }
+    } else if (nextIndex < 0) {
+      if (repeat === "all") {
+        nextIndex = queue.length - 1;
+      } else {
+        engine?.pause();
+        setIsPlaying(false);
+        return;
+      }
+    }
+
+    const nextSong = queue[nextIndex];
+    if (!nextSong) return;
+
+    await playFile(nextSong);
+
+    set({
+      currentSong: nextSong,
+      currentSongIndex: nextSong.index, // keep in sync with global files list
+    });
+
+    await new Promise((r) => setTimeout(r, 350)); // let engine settle
+  },
+
   rehydrateSettings: async () => {
     try {
       const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =

@@ -1,22 +1,56 @@
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
-import { Ionicons } from "@expo/vector-icons";
+import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
-import { PlayPauseButton } from "./PlayerControls";
 
 const QueueControls = ({ tracks }: { tracks: Song[] }) => {
-  const playSong = usePlayerStore((s) => s.playSong);
-
   const handleShuffle = () => {
     const randomIndex = Math.floor(Math.random() * tracks.length);
     playSong(randomIndex);
   };
+  // const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
+  const playSong = usePlayerStore((s) => s.playSong);
+  const playSongWithUri = usePlayerStore((s) => s.playSongWithUri);
+  // const currentSong = usePlayerStore((s) => s.currentSong);
+  const engine = usePlayerStore((s) => s.engine);
+  const addToQueue = usePlayerStore((s) => s.addToQueue);
+  const clearQueue = usePlayerStore((s) => s.clearQueue);
+
+  const handlePlay = async () => {
+    clearQueue();
+    addToQueue(tracks);
+    // console.log(tracks);
+    playSongWithUri(tracks[0].uri, "forward");
+    engine?.play();
+    // console.log("Loaded");
+  };
+  // const handlePlay = async () => {
+  //   if (!engine?.isLoaded && currentSong?.uri) {
+  //     engine?.replace({ uri: currentSong.uri });
+  //     engine?.seekTo(0);
+  //     await playSong(currentSong?.index || 0);
+  //   } else {
+  //     await playPauseMusic();
+  //   }
+  // };
   return (
     <View className="flex flex-row items-center justify-center gap-x-8 w-full mb-2 ">
       {/* Play button */}
       <View className="w-1/3">
-        <PlayPauseButton iconSize={22} text="Play Or Pause" />
+        <TouchableOpacity onPress={handlePlay}>
+          <View
+            className={
+              "p-3 bg-[rgba(47,47,47,0.5)] rounded-lg flex-row justify-center items-center gap-x-2 w-full"
+            }
+          >
+            <FontAwesome6 name="play" size={24} color="#fff" />
+
+            <Text className="text-white font-semibold text-lg text-center">
+              Play
+            </Text>
+          </View>
+        </TouchableOpacity>
       </View>
 
       {/* Shuffle button */}

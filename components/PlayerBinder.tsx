@@ -15,6 +15,14 @@ export default function PlayerBinder() {
   const volume = usePlayerStore((s) => s.volume);
   const playSong = usePlayerStore((s) => s.playSong);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
+  const queue = usePlayerStore((s) => s.queue);
+  const playAnotherSongInQueue = usePlayerStore(
+    (s) => s.playAnotherSongInQueue
+  );
+
+  // store these refs
+  const lastEngineUpdate = useRef<number>(0);
+  const lastEngineTime = useRef<number>(0);
 
   const pickFolder = usePlayerStore((s) => s.pickFolder);
   //const isLoading = usePlayerStore((s) => s.isLoading);
@@ -40,42 +48,74 @@ export default function PlayerBinder() {
     bindEngine(engine);
   }, [engine, bindEngine]);
 
-  // Smooth progress updater + end-of-track handling
-  useEffect(() => {
-    const update = () => {
-      if (status.isLoaded) {
-        setProgress(status.currentTime, status.duration || 1);
+  const advancingRef = useRef(false);
 
-        // Song finished
-        if (
+  useEffect(() => {
+    const update = async () => {
+      if (status.isLoaded) {
+        let smoothTime = status.currentTime;
+
+        // --- Smooth progress ---
+        // Only stop interpolating if we're at/after duration or explicitly paused
+        const shouldInterpolate =
           status.duration &&
-          status.currentTime >= status.duration - 0.25 // allow small buffer
+          status.currentTime < status.duration - 0.25 &&
+          (status.playing || !advancingRef.current);
+
+        if (shouldInterpolate) {
+          if (status.currentTime !== lastEngineTime.current) {
+            lastEngineTime.current = status.currentTime;
+            lastEngineUpdate.current = Date.now();
+          }
+          const elapsed = (Date.now() - lastEngineUpdate.current) / 1000;
+          smoothTime = lastEngineTime.current + elapsed;
+        }
+
+        // Clamp so it never overshoots
+        if (status.duration) {
+          smoothTime = Math.min(smoothTime, status.duration);
+        }
+
+        setProgress(smoothTime, status.duration || 1);
+
+        // --- End-of-track handling ---
+        if (
+          !advancingRef.current &&
+          status.duration &&
+          status.currentTime >= status.duration - 0.25
         ) {
-          if (repeat === "one") {
-            // restart current song
-            engine.seekTo(0);
-            engine.play();
-          } else if (shuffle) {
-            // pick random song
-            const randomIndex = Math.floor(Math.random() * files.length);
-            playSong(randomIndex);
-          } else if (repeat === "all" && !shuffle) {
-            // next song, wrap if needed
-            const nextIndex =
-              currentSongIndex + 1 >= files.length ? 0 : currentSongIndex + 1;
-            playSong(nextIndex);
-          } else if (repeat === "all" && shuffle) {
-            const randomIndex = Math.floor(Math.random() * files.length);
-            playSong(randomIndex);
-          } else {
-            // repeat = off, stop at the end
-            if (currentSongIndex + 1 < files.length) {
-              playSong(currentSongIndex + 1);
+          advancingRef.current = true; // lock
+
+          try {
+            if (repeat === "one") {
+              await engine.seekTo(0);
+              await engine.play();
+            } else if (queue.length > 0) {
+              await playAnotherSongInQueue("next", "update");
+            } else if (shuffle) {
+              const randomIndex = Math.floor(Math.random() * files.length);
+              await playSong(randomIndex);
+            } else if (repeat === "all" && !shuffle) {
+              const nextIndex =
+                currentSongIndex + 1 >= files.length ? 0 : currentSongIndex + 1;
+              await playSong(nextIndex);
+            } else if (repeat === "all" && shuffle) {
+              const randomIndex = Math.floor(Math.random() * files.length);
+              await playSong(randomIndex);
             } else {
-              // reached the end
-              engine.pause();
-              setIsPlaying(false);
+              // repeat = off
+              if (currentSongIndex + 1 < files.length) {
+                await playSong(currentSongIndex + 1);
+              } else {
+                engine.pause();
+                setIsPlaying(false);
+              }
             }
+          } finally {
+            // give engine a short time to settle before allowing another advance
+            setTimeout(() => {
+              advancingRef.current = false;
+            }, 700);
           }
         }
       }
@@ -98,6 +138,8 @@ export default function PlayerBinder() {
     playSong,
     engine,
     setIsPlaying,
+    queue.length,
+    playAnotherSongInQueue,
   ]);
 
   return null;

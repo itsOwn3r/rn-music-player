@@ -9,6 +9,7 @@ import TracksListItem from "./TracksListItem";
 export type TracksListProps = Partial<FlatListProps<Song>> & {
   tracks: Song[];
   hideQueueControls?: boolean;
+  search?: string;
 };
 
 const ItemDivider = () => (
@@ -18,21 +19,35 @@ const ItemDivider = () => (
 const TracksList = ({
   tracks,
   hideQueueControls,
+  search,
   ...rest
 }: TracksListProps) => {
   const router = useRouter();
   const playSong = usePlayerStore((s) => s.playSong);
+  const playSongWithUri = usePlayerStore((s) => s.playSongWithUri);
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const addToQueue = usePlayerStore((s) => s.addToQueue);
+  const clearQueue = usePlayerStore((s) => s.clearQueue);
 
   const handlePlaySong = async (track: Song) => {
     // get real index from full list
-    const allFiles = usePlayerStore.getState().files;
-    const realIndex = allFiles.findIndex((f) => f.uri === track.uri);
+    // const allFiles = usePlayerStore.getState().files;
+    // const realIndex = allFiles.findIndex((f) => f.uri === track.uri);
 
-    if (realIndex !== -1) {
-      await playSong(realIndex);
+    // if (realIndex !== -1) {
+    if (search) {
+      clearQueue();
+      addToQueue(tracks);
+      // await playSong(realIndex);
+      playSongWithUri(track.uri);
+      router.navigate("/Playing");
+    } else {
+      clearQueue();
+      playSongWithUri(track.uri);
+      // await playSong(realIndex);
       router.navigate("/Playing");
     }
+    // }
   };
 
   if (!tracks || tracks.length === 0) {
@@ -73,7 +88,7 @@ const TracksList = ({
         <TracksListItem
           index={index}
           track={track}
-          handlePlaySong={() => handlePlaySong(track)}
+          handlePlaySong={handlePlaySong}
           isActive={track.uri === currentSong?.uri} // boolean only
         />
       )}

@@ -145,7 +145,7 @@ export default function PlayingScreen() {
 
             <View className="flex justify-between w-full flex-row px-5">
               <TouchableOpacity
-                onPress={() => router.back()}
+                onPress={() => router.push("/Queue")}
                 className="size-12 items-center flex justify-center text-[#b8b8b8]"
               >
                 <FontAwesome name="list-ol" color="#b8b8b8" size={24} />

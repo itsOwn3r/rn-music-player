@@ -43,6 +43,17 @@ export default function Layout() {
               animation: "slide_from_bottom", // smoother exit
             }}
           />
+          <Stack.Screen
+            name="Queue"
+            options={{
+              presentation: "transparentModal",
+              gestureEnabled: true,
+              gestureDirection: "vertical",
+              animationDuration: 100,
+              headerShown: false,
+              animation: "slide_from_bottom", // smoother exit
+            }}
+          />
         </Stack>
         <StatusBar barStyle={"dark-content"} />
       </GestureHandlerRootView>

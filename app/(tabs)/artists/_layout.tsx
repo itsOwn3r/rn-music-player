@@ -8,7 +8,7 @@ const ArtistsScreenLayout = () => {
       <Stack.Screen
         name="index"
         options={{
-          ...(StackScreenWithSearchBar ?? {}),
+          ...(StackScreenWithSearchBar || {}),
           headerTitle: "Artists",
           headerTitleAlign: "center",
         }}
@@ -16,8 +16,8 @@ const ArtistsScreenLayout = () => {
       <Stack.Screen
         name="[name]"
         options={({ route }: { route: { params?: { name?: string } } }) => ({
-          ...(StackScreenWithSearchBar ?? {}),
-          headerTitle: route?.params?.name ?? "Artist",
+          ...(StackScreenWithSearchBar || {}),
+          headerTitle: route?.params?.name || "Artist",
           headerTitleAlign: "center",
         })}
       />

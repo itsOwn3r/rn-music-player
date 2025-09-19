@@ -6,7 +6,7 @@ import React, { memo } from "react";
 import { Image, Text, TouchableHighlight, View } from "react-native";
 
 export type TrackListItemProps = {
-  handlePlaySong: (index: number) => void | Promise<void>;
+  handlePlaySong: (track: Song) => void | Promise<void>;
   track: Song;
   isActive: boolean;
   index: number;
@@ -19,7 +19,7 @@ const TracksListItem = memo(
       <TouchableHighlight
         className="px-4 py-2"
         onPress={() => {
-          handlePlaySong(index);
+          handlePlaySong(track);
         }}
       >
         <View className=" flex-row items-center pr-5" style={{ columnGap: 15 }}>

@@ -89,6 +89,7 @@ const MusicList = ({ currentSong }: Props) => {
       <TracksList
         tracks={filteredTracks} // ✅ full list OR filtered
         extraData={currentSong?.id} // ✅ force re-render only when playing song changes
+        search={search}
         contentContainerStyle={{
           paddingTop: 72,
           paddingBottom: 128,

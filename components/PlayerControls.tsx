@@ -60,15 +60,27 @@ export const SkipToLastButton = ({
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const playSong = usePlayerStore((s) => s.playSong);
   const files = usePlayerStore((s) => s.files);
-
+  const queue = usePlayerStore((s) => s.queue);
+  const playAnotherSongInQueue = usePlayerStore(
+    (s) => s.playAnotherSongInQueue
+  );
   const shuffle = usePlayerStore((s) => s.shuffle);
   const randomIndex = Math.floor(Math.random() * files.length);
 
   const nextIndex = shuffle ? randomIndex : currentSongIndex - 1;
 
+  const handlePlaylast = (index: number) => {
+    if (queue.length > 0) {
+      // playSong(currentSongIndex, "backward", true);
+      playAnotherSongInQueue("previous");
+    } else {
+      playSong(index, "backward", true);
+    }
+  };
+
   return (
     <TouchableOpacity
-      onPress={() => playSong(nextIndex, "backward", true)}
+      onPress={() => handlePlaylast(nextIndex)}
       className={classNames}
     >
       <FontAwesome6 name="backward-step" size={iconSize} color="#fff" />
@@ -82,6 +94,10 @@ export const SkipToNextButton = ({
 }: PlayerButtonsProps) => {
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const playSong = usePlayerStore((s) => s.playSong);
+  const queue = usePlayerStore((s) => s.queue);
+  const playAnotherSongInQueue = usePlayerStore(
+    (s) => s.playAnotherSongInQueue
+  );
 
   const files = usePlayerStore((s) => s.files);
 
@@ -89,9 +105,17 @@ export const SkipToNextButton = ({
   const randomIndex = Math.floor(Math.random() * files.length);
 
   const nextIndex = shuffle ? randomIndex : currentSongIndex + 1;
+
+  const handlePlayNext = async (index: number) => {
+    if (queue.length > 0) {
+      await playAnotherSongInQueue("next");
+    } else {
+      await playSong(index);
+    }
+  };
   return (
     <TouchableOpacity
-      onPress={() => playSong(nextIndex)}
+      onPress={() => handlePlayNext(nextIndex)}
       className={classNames}
     >
       <FontAwesome6 name="forward-step" size={iconSize} color="#fff" />
