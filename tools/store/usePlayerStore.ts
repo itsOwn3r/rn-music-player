@@ -70,6 +70,9 @@ type PlayerStore = {
   volume: number;
   setVolume: (val: number) => void;
   rehydrateSettings: () => Promise<void>;
+  favorites: string[]; // store song IDs
+  toggleFavorite: (uri: string) => void | null;
+  isFavorite: (uri: string) => boolean;
 };
 
 export const usePlayerStore = create<PlayerStore>((set, get) => ({
@@ -327,14 +330,31 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       AsyncStorage.setItem("repeat", next);
       return { repeat: next };
     }),
-
+  favorites: [],
+  toggleFavorite: (uri) =>
+    set((state) => {
+      // if (!uri) {
+      //   return null;
+      // }
+      const exists = state.favorites.includes(uri);
+      const updated = exists
+        ? state.favorites.filter((id) => id !== uri)
+        : [...state.favorites, uri];
+      AsyncStorage.setItem("favorites", JSON.stringify(updated));
+      return { favorites: updated };
+    }),
+  isFavorite: (uri) => {
+    return get().favorites.includes(uri);
+  },
   rehydrateSettings: async () => {
     try {
-      const [savedRepeat, savedShuffle, savedVolume] = await Promise.all([
-        AsyncStorage.getItem("repeat"),
-        AsyncStorage.getItem("shuffle"),
-        AsyncStorage.getItem("volume"),
-      ]);
+      const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =
+        await Promise.all([
+          AsyncStorage.getItem("repeat"),
+          AsyncStorage.getItem("shuffle"),
+          AsyncStorage.getItem("volume"),
+          AsyncStorage.getItem("favorites"),
+        ]);
 
       if (savedRepeat) {
         set({ repeat: savedRepeat as PlayerStore["repeat"] });
@@ -350,6 +370,7 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           (engine as any).setVolume(vol);
         }
       }
+      if (savedFavorites) set({ favorites: JSON.parse(savedFavorites) });
     } catch (err) {
       console.warn("Failed to rehydrate player settings:", err);
     }

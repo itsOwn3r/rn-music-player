@@ -37,10 +37,12 @@ export default function PlayingScreen() {
   const router = useRouter();
   const translateY = useSharedValue(0);
 
-  const isFavorite = false;
-  const toggleFavorite = async () => {};
+  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
+  const isFavorite = usePlayerStore((s) =>
+    s.isFavorite(currentSong?.uri || "")
+  );
 
   // Pan gesture
   const panGesture = Gesture.Pan()
@@ -149,7 +151,7 @@ export default function PlayingScreen() {
                 <FontAwesome name="list-ol" color="#b8b8b8" size={24} />
               </TouchableOpacity>
               <TouchableOpacity
-                onPress={toggleFavorite}
+                onPress={() => toggleFavorite(currentSong?.uri || "")}
                 className="text-white size-12 items-center flex justify-center"
               >
                 <FontAwesome
