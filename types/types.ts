@@ -11,6 +11,7 @@ export interface Song {
   date?: number | null;
   duration: number | 0;
   id?: string | null;
+  isFavorite?: boolean;
 }
 
 export type Artist = {

@@ -1,3 +1,4 @@
+import { songs as staticSongs } from "@/assets/data/playlists";
 import {
   displayNameFromSafUri,
   fileNameFromSafUri,
@@ -137,6 +138,16 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
       const lightweightList: Song[] = audioUris.map((uri, index) => {
         const filename = uri.split("/").pop() ?? "Unknown.mp3";
+
+        // Check in static songs
+        const existing = staticSongs.find((s) => s.uri === uri);
+
+        if (existing) {
+          // Use cached/static song, enforce correct index
+          return { ...existing, index };
+        }
+
+        // Otherwise create a lightweight placeholder
         return {
           id: uri,
           uri,
@@ -154,8 +165,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
         };
       });
 
-      const sortedList = lightweightList.sort((a, b) =>
-        a.filename.localeCompare(b.filename)
+      // const sortedList = lightweightList.sort((a, b) =>
+      //   a.date > b.date
+      // );
+
+      const sortedList = lightweightList.sort(
+        (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
       );
 
       set({ files: sortedList, isLoading: false });
@@ -178,7 +193,12 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       const fetched = new Set<string>();
 
       const fetchOne = async (song: Song, idx: number) => {
-        if (fetched.has(song.uri) || inflight.has(song.uri)) return;
+        if (
+          fetched.has(song.uri) ||
+          inflight.has(song.uri) ||
+          staticSongs.some((s) => s.uri === song.uri)
+        )
+          return;
         inflight.add(song.uri);
         try {
           const info = await FileSystem.getInfoAsync(song.uri as any);
@@ -281,12 +301,37 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
     const engine = get().engine;
     if (!engine) return;
 
-    const { files, currentSongIndex, position } = get();
+    const { files, currentSongIndex, position, repeat } = get();
     if (!files.length) return;
 
-    const selectedIndex = index < 0 ? 0 : index;
+    console.log("indxxxx ", index);
 
-    if (selectedIndex >= files.length) {
+    // const selectedIndex = index < 0 ? 0 : index;
+
+    const findSong = files.find((item) => {
+      if (item.index === index) {
+        const newItem = { ...item, index };
+
+        return newItem;
+      }
+      return false;
+    });
+
+    console.log("findSong.indx ", findSong?.index);
+    const selectedIndex =
+      typeof findSong?.index === "number" && findSong.index >= 0
+        ? findSong.index
+        : 0;
+    console.log("selectedIndex ", selectedIndex);
+
+    if (
+      selectedIndex === 0 &&
+      currentSongIndex > selectedIndex &&
+      repeat === "off"
+    ) {
+      engine.pause();
+      set({ currentSongIndex: 0, isPlaying: false });
+    } else if (selectedIndex >= files.length) {
       await get().playFile(files[0]);
       set({ currentSongIndex: 0 });
     } else if (
@@ -300,6 +345,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       await engine.play(); // resume
       set({ isPlaying: true });
     } else {
+      console.log("selectedIndex ", selectedIndex);
+      console.log("files[selectedIndex]", files[selectedIndex]);
+      console.log("findSong.index", findSong?.index);
       await get().playFile(files[selectedIndex]);
       set({ currentSongIndex: selectedIndex });
     }
@@ -347,9 +395,9 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
       set({ isPlaying: true });
     } else {
       await get().playFile(findSong);
-      console.log("selectedIndex ", selectedIndex);
-      console.log("files[selectedIndex]", files[selectedIndex]);
-      console.log("findSong.index", findSong.index);
+      // console.log("selectedIndex ", selectedIndex);
+      // console.log("files[selectedIndex]", files[selectedIndex]);
+      // console.log("findSong.index", findSong.index);
       set({ currentSongIndex: selectedIndex });
     }
   },
@@ -520,7 +568,6 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
 
     await new Promise((r) => setTimeout(r, 350)); // let engine settle
   },
-
   rehydrateSettings: async () => {
     try {
       const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =
@@ -545,11 +592,25 @@ export const usePlayerStore = create<PlayerStore>((set, get) => ({
           (engine as any).setVolume(vol);
         }
       }
-      if (savedFavorites) set({ favorites: JSON.parse(savedFavorites) });
+      if (savedFavorites) {
+        set({ favorites: JSON.parse(savedFavorites) });
+      }
+
+      // 🔥 Merge staticSongs with current files
+      const { files } = get();
+      if (files.length) {
+        const mergedFiles = files.map((f) => {
+          const match = staticSongs.find((s) => s.uri === f.uri);
+          return match ? { ...f, ...match } : f;
+        });
+
+        set({ files: mergedFiles });
+      }
     } catch (err) {
       console.warn("Failed to rehydrate player settings:", err);
     }
   },
+
   setVolume: (val: number) => {
     AsyncStorage.setItem("volume", JSON.stringify(val));
     set({ volume: val });

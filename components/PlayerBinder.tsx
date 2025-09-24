@@ -15,6 +15,7 @@ export default function PlayerBinder() {
   const volume = usePlayerStore((s) => s.volume);
   const playSong = usePlayerStore((s) => s.playSong);
   const setIsPlaying = usePlayerStore((s) => s.setIsPlaying);
+  const isPlaying = usePlayerStore((s) => s.isPlaying); // <-- new
   const queue = usePlayerStore((s) => s.queue);
   const playAnotherSongInQueue = usePlayerStore(
     (s) => s.playAnotherSongInQueue
@@ -53,35 +54,43 @@ export default function PlayerBinder() {
   useEffect(() => {
     const update = async () => {
       if (status.isLoaded) {
+        // --- Smooth progress (only while actually playing) ---
         let smoothTime = status.currentTime;
 
-        // --- Smooth progress ---
-        // Only stop interpolating if we're at/after duration or explicitly paused
-        const shouldInterpolate =
+        // Only interpolate while both engine reports playing and the store says playing,
+        // and while not in the middle of an auto-advance.
+        if (
+          status.playing &&
+          isPlaying &&
           status.duration &&
-          status.currentTime < status.duration - 0.25 &&
-          (status.playing || !advancingRef.current);
-
-        if (shouldInterpolate) {
+          !advancingRef.current
+        ) {
           if (status.currentTime !== lastEngineTime.current) {
             lastEngineTime.current = status.currentTime;
             lastEngineUpdate.current = Date.now();
           }
           const elapsed = (Date.now() - lastEngineUpdate.current) / 1000;
           smoothTime = lastEngineTime.current + elapsed;
+        } else {
+          // paused / stopped / advancing -> trust engine-reported time (no interpolation)
+          smoothTime = status.currentTime;
         }
 
-        // Clamp so it never overshoots
+        // Clamp and avoid jitter backwards
         if (status.duration) {
           smoothTime = Math.min(smoothTime, status.duration);
+          // never go behind engine's reported time
+          smoothTime = Math.max(smoothTime, status.currentTime);
         }
 
         setProgress(smoothTime, status.duration || 1);
 
         // --- End-of-track handling ---
+        // Only auto-advance if the store believes playback is active (prevents advancing while paused)
         if (
           !advancingRef.current &&
           status.duration &&
+          isPlaying &&
           status.currentTime >= status.duration - 0.25
         ) {
           advancingRef.current = true; // lock
@@ -93,21 +102,25 @@ export default function PlayerBinder() {
             } else if (queue.length > 0) {
               await playAnotherSongInQueue("next", "update");
             } else if (shuffle) {
-              const randomIndex = Math.floor(Math.random() * files.length);
-              await playSong(randomIndex);
-            } else if (repeat === "all" && !shuffle) {
-              const nextIndex =
-                currentSongIndex + 1 >= files.length ? 0 : currentSongIndex + 1;
-              await playSong(nextIndex);
-            } else if (repeat === "all" && shuffle) {
-              const randomIndex = Math.floor(Math.random() * files.length);
-              await playSong(randomIndex);
+              if (files.length > 0) {
+                const randomIndex = Math.floor(Math.random() * files.length);
+                await playSong(randomIndex);
+              }
+            } else if (repeat === "all") {
+              const nextIndex = currentSongIndex + 1;
+              if (nextIndex < files.length) {
+                await playSong(nextIndex);
+              } else {
+                // loop to start
+                await playSong(0);
+              }
             } else {
-              // repeat = off
+              // repeat === "off"
               if (currentSongIndex + 1 < files.length) {
                 await playSong(currentSongIndex + 1);
               } else {
-                engine.pause();
+                // end of playlist -> stop
+                await engine.pause();
                 setIsPlaying(false);
               }
             }
@@ -140,6 +153,7 @@ export default function PlayerBinder() {
     setIsPlaying,
     queue.length,
     playAnotherSongInQueue,
+    isPlaying, // <-- include this so pause/play changes immediately affect logic
   ]);
 
   return null;
