@@ -1,7 +1,8 @@
 import { unknownTrackImageUri } from "@/constants/images";
 import { Playlist } from "@/types/types";
+import { useRouter } from "expo-router";
 import React from "react";
-import { FlatList, Image, Text, View } from "react-native";
+import { Button, FlatList, Image, Text, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import { PlaylistListItem } from "./PlaylistListItem";
 
@@ -21,9 +22,10 @@ const PlaylistsList = ({
   scrollEnabled?: boolean;
 }) => {
   const insets = useSafeAreaInsets();
+  const router = useRouter();
   return (
     <FlatList
-      className="flex-1 size-full mt-16"
+      className="flex-1 size-full mt-16 overflow-y-scroll"
       style={{
         // paddingBottom: insets.bottom + 150,
         marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
@@ -33,17 +35,28 @@ const PlaylistsList = ({
       }}
       data={playlists}
       keyExtractor={(item) => item.id}
+      removeClippedSubviews={true}
       ItemSeparatorComponent={ItemDivider}
       ListFooterComponent={ItemDivider}
-      scrollEnabled
+      scrollEnabled={scrollEnabled === true}
+      ListHeaderComponent={
+        <View className="flex mt-2 mb-4 bg-transparent border-white rounded-lg border-hairline">
+          <Button
+            title="Create new Playlist"
+            color="black"
+            onPress={() => router.push("/playlists/create")}
+          />
+        </View>
+      }
       ListEmptyComponent={
-        <View>
-          <Text className="text-center mt-5">No playlist found</Text>
-
+        <View className="my-6">
           <Image
             source={{ uri: unknownTrackImageUri }}
             className="size-[200px] self-center mt-10 opacity-30"
           />
+          <Text className="text-center mt-5 text-white text-2xl">
+            No playlist found!
+          </Text>
         </View>
       }
       // ListHeaderComponentStyle={{ margin: 0, padding: 0 }}

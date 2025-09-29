@@ -10,7 +10,7 @@ const PlaylistsScreenLayout = () => {
         <Stack.Screen
           name="index"
           options={{
-            ...StackScreenWithSearchBar,
+            ...(StackScreenWithSearchBar ?? {}),
             headerTitle: "Playlists",
             headerTitleAlign: "center",
           }}
@@ -22,6 +22,19 @@ const PlaylistsScreenLayout = () => {
             headerTitle: route?.params?.name ?? "Playlist",
             headerTitleAlign: "center",
           })}
+        />
+        <Stack.Screen
+          name="create"
+          options={{
+            ...(StackScreenWithSearchBar ?? {}),
+            headerTitle: "Create New Playlist",
+            // headerStyle:{s},
+            headerTitleStyle: {
+              color: "#fff",
+              fontSize: 22,
+            },
+            headerTitleAlign: "center",
+          }}
         />
       </Stack>
     </View>

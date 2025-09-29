@@ -1,55 +1,105 @@
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
-import { MenuView } from "@react-native-menu/menu";
 import { useRouter } from "expo-router";
-import React, { PropsWithChildren } from "react";
-import { match } from "ts-pattern";
+import React, { PropsWithChildren, useState } from "react";
+import {
+  ActionSheetIOS,
+  Modal,
+  Platform,
+  Pressable,
+  Text,
+  TouchableOpacity,
+  View,
+} from "react-native";
 
 type TrackShortcutsMenuProps = PropsWithChildren<{ track: Song }>;
 
 const TrackShortcutsMenu = ({ track, children }: TrackShortcutsMenuProps) => {
   const router = useRouter();
-  const isFavorite = track.isFavorite;
-
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const isFavorite = usePlayerStore((s) => s.isFavorite(track.uri));
+  const [visible, setVisible] = useState(false);
 
-  const handlePressAction = (id: string) => {
-    match(id)
-      .with("add-to-favorites", async () => {
-        toggleFavorite(track.uri);
-      })
-      .with("remove-from-favorite", async () => {
-        toggleFavorite(track.uri);
-      })
-      .with("add-to-playlist", async () => {
-        router.push({
-          pathname: "(modals)/addToPlaylist",
-          params: { trackURI: track.uri },
-        });
-      })
-      .otherwise(() => {
-        console.warn(`Unknown menu action ${id}`);
-      });
+  const doToggleFavorite = () => {
+    toggleFavorite(track.uri);
+    setVisible(false);
+  };
+
+  const doAddToPlaylist = () => {
+    setVisible(false);
+    router.push({
+      pathname: "/(modals)/addToPlaylist",
+      params: { trackUri: track.uri },
+    });
+  };
+
+  const handleActionIndex = (index: number) => {
+    if (index === 0) doToggleFavorite();
+    else if (index === 1) doAddToPlaylist();
+  };
+
+  const openMenu = () => {
+    if (Platform.OS === "ios") {
+      const favoriteLabel = isFavorite
+        ? "Remove from Favorites"
+        : "Add to Favorites";
+      const options = [favoriteLabel, "Add to playlist", "Cancel"];
+      const cancelButtonIndex = 2;
+      ActionSheetIOS.showActionSheetWithOptions(
+        { options, cancelButtonIndex },
+        handleActionIndex
+      );
+    } else {
+      setVisible(true);
+    }
   };
 
   return (
-    <MenuView
-      onPressAction={({ nativeEvent: { event } }) => handlePressAction(event)}
-      actions={[
-        {
-          id: isFavorite ? "remove-from-favorite" : "add-to-favorites",
-          title: isFavorite ? "Remove from Favorites" : "Add to Favorites",
-          image: isFavorite ? "star.fill" : "star",
-        },
-        {
-          id: "add-to-playlist",
-          title: "Add to playlist",
-          image: "plus",
-        },
-      ]}
-    >
-      {children}
-    </MenuView>
+    <>
+      <Pressable onPress={openMenu}>{children}</Pressable>
+
+      {/* Fancy dark modal menu for Android / Expo Go */}
+      <Modal
+        visible={visible}
+        transparent
+        animationType="fade"
+        onRequestClose={() => setVisible(false)}
+      >
+        <Pressable
+          className="flex-1 bg-black/60 justify-end"
+          onPress={() => setVisible(false)}
+        >
+          <View className="bg-[#1c1c1e] rounded-t-2xl shadow-lg">
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={doToggleFavorite}
+            >
+              <Text className="text-base text-gray-100">
+                {isFavorite ? "★ Remove from Favorites" : "☆ Add to Favorites"}
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={doAddToPlaylist}
+            >
+              <Text className="text-base text-gray-100">
+                ➕ Add to Playlist
+              </Text>
+            </TouchableOpacity>
+
+            <TouchableOpacity
+              className="px-5 py-4 mt-1 border-t border-white/20"
+              onPress={() => setVisible(false)}
+            >
+              <Text className="text-base text-red-500 font-semibold text-center">
+                Cancel
+              </Text>
+            </TouchableOpacity>
+          </View>
+        </Pressable>
+      </Modal>
+    </>
   );
 };
 

@@ -12,12 +12,14 @@ import {
   setCachedMetadata,
   setCachedMetadataLoose,
 } from "@/tools/setAndGetCache";
-import { Song } from "@/types/types";
+import { Playlist, Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system";
 import { Platform } from "react-native";
+import uuid from "react-native-uuid";
 import { create } from "zustand";
+import { createJSONStorage, persist } from "zustand/middleware";
 
 if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
@@ -75,9 +77,8 @@ type PlayerStore = {
   toggleRepeat: () => void;
   volume: number;
   setVolume: (val: number) => void;
-  rehydrateSettings: () => Promise<void>;
   favorites: string[]; // store song IDs
-  toggleFavorite: (uri: string) => void | null;
+  toggleFavorite: (uri: string) => void;
   isFavorite: (uri: string) => boolean;
   queue: Song[]; // songs queued up
   addToQueue: (songs: Song[]) => void;
@@ -87,537 +88,637 @@ type PlayerStore = {
     type: "next" | "previous",
     method?: "button" | "update"
   ) => Promise<void>;
+  setFiles: (files: Song[]) => void;
 };
 
-export const usePlayerStore = create<PlayerStore>((set, get) => ({
-  engine: null,
+export const usePlayerStore = create<PlayerStore>()(
+  persist(
+    (set, get) => ({
+      engine: null,
 
-  files: [],
-  currentSong: null,
-  currentSongIndex: -1,
-  isPlaying: false,
-  position: 0,
-  duration: 1,
-  isLoading: true,
-  shuffle: false,
-  repeat: "off",
-  volume: 1,
+      files: [],
+      currentSong: null,
+      currentSongIndex: -1,
+      isPlaying: false,
+      position: 0,
+      duration: 1,
+      isLoading: true,
+      shuffle: false,
+      repeat: "off",
+      volume: 1,
 
-  bindEngine: (engine) => set({ engine }),
-  setProgress: (position, duration) =>
-    set({ position, duration: duration || 1 }),
-
-  pickFolder: async () => {
-    set({ isLoading: true });
-    try {
-      if (Platform.OS !== "android") {
-        throw new Error("Folder picking is Android-only.");
-      }
-
-      let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
-      if (!directoryUri) {
-        const perm =
-          await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-        if (!perm.granted || !perm.directoryUri)
-          throw new Error("Permission not granted");
-        directoryUri = perm.directoryUri;
-        await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
-      }
-
-      const entries =
-        await FileSystem.StorageAccessFramework.readDirectoryAsync(
-          directoryUri
-        );
-      const audioUris = entries.filter(looksLikeAudio);
-      if (audioUris.length === 0) {
-        set({ files: [], currentSongIndex: -1, isLoading: false });
-        return;
-      }
-
-      const cacheDir = await ensureCacheDir();
-
-      const lightweightList: Song[] = audioUris.map((uri, index) => {
-        const filename = uri.split("/").pop() ?? "Unknown.mp3";
-
-        // Check in static songs
-        const existing = staticSongs.find((s) => s.uri === uri);
-
-        if (existing) {
-          // Use cached/static song, enforce correct index
-          return { ...existing, index };
-        }
-
-        // Otherwise create a lightweight placeholder
-        return {
-          id: uri,
-          uri,
-          filename: fileNameFromSafUri(uri) ?? filename,
-          title:
-            displayNameFromSafUri(uri) ?? filename.replace(/\.[a-z0-9]+$/i, ""),
-          artist: null,
-          album: null,
-          coverArt: null,
-          index,
-          comment: null,
-          date: null,
-          duration: 0,
-          year: null,
-        };
-      });
-
-      // const sortedList = lightweightList.sort((a, b) =>
-      //   a.date > b.date
-      // );
-
-      const sortedList = lightweightList.sort(
-        (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
-      );
-
-      set({ files: sortedList, isLoading: false });
-
-      const lastSong = await AsyncStorage.getItem("song");
-      if (lastSong) {
-        const lastSongObject: Song = JSON.parse(lastSong);
-        set({
-          currentSongIndex: lastSongObject.index,
-          currentSong: lastSongObject,
-        });
-      } else {
-        set({ currentSongIndex: 0 });
-      }
-
-      const firstChunk = sortedList.slice(0, 40);
-      const rest = sortedList.slice(40);
-
-      const inflight = new Set<string>();
-      const fetched = new Set<string>();
-
-      const fetchOne = async (song: Song, idx: number) => {
-        if (
-          fetched.has(song.uri) ||
-          inflight.has(song.uri) ||
-          staticSongs.some((s) => s.uri === song.uri)
-        )
-          return;
-        inflight.add(song.uri);
-        try {
-          const info = await FileSystem.getInfoAsync(song.uri as any);
-          let modificationTime: number | undefined = undefined;
-          if (info && (info as any).exists && "modificationTime" in info) {
-            modificationTime = (info as any).modificationTime as
-              | number
-              | undefined;
-          }
-
-          if (modificationTime) {
-            const cached = await getCachedMetadata(song.uri, modificationTime);
-            if (cached) {
-              set((prev) => ({
-                files: prev.files.map((f) =>
-                  f.uri === song.uri ? { ...f, ...cached, index: idx } : f
-                ),
-              }));
-              fetched.add(song.uri);
-              return;
-            }
-          } else {
-            const cachedLoose = await getCachedMetadataLoose(song.uri);
-            if (cachedLoose) {
-              set((prev) => ({
-                files: prev.files.map((f) =>
-                  f.uri === song.uri ? { ...f, ...cachedLoose, index: idx } : f
-                ),
-              }));
-              fetched.add(song.uri);
-              return;
-            }
-          }
-
-          const tags = await readTagsForContentUri(song.uri, cacheDir);
-
-          const merged: Song = { ...song, ...tags, index: idx };
-
-          if (modificationTime) {
-            await setCachedMetadata(song.uri, modificationTime, merged);
-          } else {
-            await setCachedMetadataLoose(song.uri, merged);
-          }
-
-          set((prev) => ({
-            files: prev.files.map((f) =>
-              f.uri === song.uri ? { ...f, ...tags } : f
-            ),
-          }));
-          fetched.add(song.uri);
-        } catch (err) {
-          console.warn("Metadata parse failed:", err);
-        } finally {
-          inflight.delete(song.uri);
-        }
-      };
-
-      const runPool = (list: Song[], concurrency: number) => {
-        let i = 0;
-        const worker = async () => {
-          while (i < list.length) {
-            const item = list[i++];
-            await fetchOne(item, item.index);
-          }
-        };
-
-        Array.from({ length: concurrency }).forEach(() => {
-          worker().catch((e) => console.warn("Metadata worker error:", e));
-        });
-      };
-
-      runPool(firstChunk, 4);
-      runPool(rest, 2);
-    } catch (err) {
-      console.error("pickFolder error:", err);
-      set({ isLoading: false });
-    }
-  },
-  playFile: async (file: Song, duration?: number) => {
-    const engine = get().engine;
-    if (!engine) return;
-
-    await saveSongMetadata(file);
-    await engine.replace({ uri: file.uri });
-    await engine.play();
-
-    set({
-      isPlaying: true,
-      currentSong: file,
-      currentSongIndex: file.index,
-      duration: duration ?? engine.duration ?? 1,
-    });
-  },
-
-  playSong: async (
-    index: number,
-    backwardOrForward?: "backward" | "forward",
-    isRandom?: boolean
-  ) => {
-    const engine = get().engine;
-    if (!engine) return;
-
-    const { files, currentSongIndex, position, repeat } = get();
-    if (!files.length) return;
-
-    console.log("indxxxx ", index);
-
-    // const selectedIndex = index < 0 ? 0 : index;
-
-    const findSong = files.find((item) => {
-      if (item.index === index) {
-        const newItem = { ...item, index };
-
-        return newItem;
-      }
-      return false;
-    });
-
-    console.log("findSong.indx ", findSong?.index);
-    const selectedIndex =
-      typeof findSong?.index === "number" && findSong.index >= 0
-        ? findSong.index
-        : 0;
-    console.log("selectedIndex ", selectedIndex);
-
-    if (
-      selectedIndex === 0 &&
-      currentSongIndex > selectedIndex &&
-      repeat === "off"
-    ) {
-      engine.pause();
-      set({ currentSongIndex: 0, isPlaying: false });
-    } else if (selectedIndex >= files.length) {
-      await get().playFile(files[0]);
-      set({ currentSongIndex: 0 });
-    } else if (
-      (currentSongIndex - 1 === selectedIndex ||
-        (isRandom && backwardOrForward === "backward")) &&
-      position >= 5
-    ) {
-      await engine.seekTo(0);
-      set({ position: 0 });
-    } else if (currentSongIndex === selectedIndex) {
-      await engine.play(); // resume
-      set({ isPlaying: true });
-    } else {
-      console.log("selectedIndex ", selectedIndex);
-      console.log("files[selectedIndex]", files[selectedIndex]);
-      console.log("findSong.index", findSong?.index);
-      await get().playFile(files[selectedIndex]);
-      set({ currentSongIndex: selectedIndex });
-    }
-  },
-  playSongWithUri: async (
-    uri: string,
-    backwardOrForward?: "backward" | "forward",
-    isRandom?: boolean
-  ) => {
-    const engine = get().engine;
-    if (!engine) return;
-
-    const { files, currentSongIndex, position } = get();
-    if (!files.length) return;
-
-    const findSong = files.find((item, index) => {
-      if (item.uri === uri) {
-        // Create a copy of the item to avoid modifying the original array
-        const newItem = { ...item, index };
-
-        // Return the new object with the added index
-        return newItem;
-      }
-      return false; // Important: Return false to continue the search if not found
-    });
-    // console.log(findSong);
-
-    const selectedIndex =
-      typeof findSong?.index === "number" && findSong.index >= 0
-        ? findSong.index
-        : 0;
-
-    if (selectedIndex >= files.length || !findSong) {
-      await get().playFile(files[0]);
-      set({ currentSongIndex: 0 });
-    } else if (
-      (currentSongIndex - 1 === selectedIndex ||
-        (isRandom && backwardOrForward === "backward")) &&
-      position >= 5
-    ) {
-      await engine.seekTo(0);
-      set({ position: 0 });
-    } else if (currentSongIndex === selectedIndex) {
-      await engine.play(); // resume
-      set({ isPlaying: true });
-    } else {
-      await get().playFile(findSong);
-      // console.log("selectedIndex ", selectedIndex);
-      // console.log("files[selectedIndex]", files[selectedIndex]);
-      // console.log("findSong.index", findSong.index);
-      set({ currentSongIndex: selectedIndex });
-    }
-  },
-
-  playPauseMusic: async () => {
-    const engine = get().engine;
-    if (!engine) return;
-
-    if (engine.playing) {
-      await engine.pause();
-      set({ isPlaying: false });
-    } else {
-      await engine.play();
-      set({ isPlaying: true });
-    }
-  },
-  setIsPlaying: (val: boolean) => set({ isPlaying: val }),
-
-  handleChangeSongPosition: (pos: number) => {
-    const engine = get().engine;
-    if (!engine) return;
-    engine.seekTo(pos);
-    set({ position: pos });
-  },
-  toggleShuffle: () =>
-    set((state) => {
-      const newShuffle = !state.shuffle;
-      AsyncStorage.setItem("shuffle", JSON.stringify(newShuffle));
-      return { shuffle: newShuffle };
-    }),
-  toggleRepeat: () =>
-    set((state) => {
-      let next: PlayerStore["repeat"];
-      if (state.repeat === "off") {
-        next = "all";
-      } else if (state.repeat === "all") {
-        next = "one";
-      } else {
-        next = "off";
-      }
-      AsyncStorage.setItem("repeat", next);
-      return { repeat: next };
-    }),
-  favorites: [],
-  toggleFavorite: (uri) =>
-    set((state) => {
-      // if (!uri) {
-      //   return null;
-      // }
-      const exists = state.favorites.includes(uri);
-      const updated = exists
-        ? state.favorites.filter((id) => id !== uri)
-        : [...state.favorites, uri];
-      AsyncStorage.setItem("favorites", JSON.stringify(updated));
-      return { favorites: updated };
-    }),
-  isFavorite: (uri) => {
-    return get().favorites.includes(uri);
-  },
-  queue: [],
-
-  addToQueue: (songs) =>
-    set((state) => {
-      const isArray = Array.isArray(songs);
-      let newSongs: Song[] = isArray ? songs : [songs];
-
-      // Shuffle if enabled
-      if (state.shuffle) {
-        newSongs = newSongs
-          .map((s) => ({ ...s })) // clone
-          .sort(() => Math.random() - 0.5); // quick shuffle
-        // OR if you install lodash: lodashShuffle(newSongs)
-      }
-
-      // For repeat = "one": just repeat the currentSong, ignore queue additions
-      if (state.repeat === "one") {
-        return state;
-      }
-
-      return {
-        queue: [...state.queue, ...newSongs],
-      };
-    }),
-  removeFromQueue: (songId) =>
-    set((state) => ({
-      queue: state.queue.filter((s) => s.id !== songId),
-    })),
-
-  clearQueue: () => set({ queue: [] }),
-
-  playAnotherSongInQueue: async (
-    type: "next" | "previous",
-    method?: "button" | "update"
-  ) => {
-    const {
-      queue,
-      playFile,
-      repeat,
-      engine,
-      setIsPlaying,
-      currentSongIndex,
-      position,
-    } = get();
-
-    if (!queue.length) return;
-
-    // Guard against auto-advance firing too early
-    if (method === "update" && position < 10) return;
-
-    // Debounce multiple "update" triggers
-    const now = Date.now();
-    if (method === "update" && now - _lastQueueAdvance < 800) {
-      console.log("What");
-      return;
-    }
-    _lastQueueAdvance = now;
-
-    // Handle repeat-one
-    if (repeat === "one") {
-      engine?.seekTo(0);
-      engine?.play();
-      setIsPlaying(true);
-      return;
-    }
-
-    // Find where currentSongIndex sits inside the queue
-    const songIndexInQueue = queue.findIndex(
-      (song) => song.index === currentSongIndex
-    );
-
-    let nextIndex =
-      songIndexInQueue === -1
-        ? type === "next"
-          ? 0
-          : queue.length - 1
-        : type === "next"
-          ? songIndexInQueue + 1
-          : songIndexInQueue - 1;
-
-    // Handle overflow/underflow
-    if (nextIndex >= queue.length) {
-      if (repeat === "all") {
-        nextIndex = 0;
-      } else {
-        engine?.pause();
-        setIsPlaying(false);
-        return;
-      }
-    } else if (nextIndex < 0) {
-      if (repeat === "all") {
-        nextIndex = queue.length - 1;
-      } else {
-        engine?.pause();
-        setIsPlaying(false);
-        return;
-      }
-    }
-
-    const nextSong = queue[nextIndex];
-    if (!nextSong) return;
-
-    await playFile(nextSong);
-
-    set({
-      currentSong: nextSong,
-      currentSongIndex: nextSong.index, // keep in sync with global files list
-    });
-
-    await new Promise((r) => setTimeout(r, 350)); // let engine settle
-  },
-  rehydrateSettings: async () => {
-    try {
-      const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =
-        await Promise.all([
-          AsyncStorage.getItem("repeat"),
-          AsyncStorage.getItem("shuffle"),
-          AsyncStorage.getItem("volume"),
-          AsyncStorage.getItem("favorites"),
-        ]);
-
-      if (savedRepeat) {
-        set({ repeat: savedRepeat as PlayerStore["repeat"] });
-      }
-      if (savedShuffle) {
-        set({ shuffle: JSON.parse(savedShuffle) });
-      }
-      if (savedVolume) {
-        const vol = JSON.parse(savedVolume);
-        set({ volume: vol });
-        const engine = get().engine;
-        if (engine && "setVolume" in engine) {
-          (engine as any).setVolume(vol);
-        }
-      }
-      if (savedFavorites) {
-        set({ favorites: JSON.parse(savedFavorites) });
-      }
-
-      // 🔥 Merge staticSongs with current files
-      const { files } = get();
-      if (files.length) {
+      bindEngine: (engine) => set({ engine }),
+      setFiles: (files) => {
+        // Merge scanned files with staticSongs once here
         const mergedFiles = files.map((f) => {
           const match = staticSongs.find((s) => s.uri === f.uri);
           return match ? { ...f, ...match } : f;
         });
-
         set({ files: mergedFiles });
-      }
-    } catch (err) {
-      console.warn("Failed to rehydrate player settings:", err);
-    }
-  },
+      },
+      setProgress: (position, duration) =>
+        set({ position, duration: duration || 1 }),
 
-  setVolume: (val: number) => {
-    AsyncStorage.setItem("volume", JSON.stringify(val));
-    set({ volume: val });
-    const engine = get().engine;
-    if (engine && "setVolume" in engine) {
-      // expo-audio engine has setVolume
-      (engine as any).setVolume(val);
+      pickFolder: async () => {
+        set({ isLoading: true });
+        try {
+          if (Platform.OS !== "android") {
+            throw new Error("Folder picking is Android-only.");
+          }
+
+          let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
+          if (!directoryUri) {
+            const perm =
+              await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+            if (!perm.granted || !perm.directoryUri)
+              throw new Error("Permission not granted");
+            directoryUri = perm.directoryUri;
+            await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
+          }
+
+          const entries =
+            await FileSystem.StorageAccessFramework.readDirectoryAsync(
+              directoryUri
+            );
+          const audioUris = entries.filter(looksLikeAudio);
+          if (audioUris.length === 0) {
+            set({ files: [], currentSongIndex: -1, isLoading: false });
+            return;
+          }
+
+          const cacheDir = await ensureCacheDir();
+
+          const lightweightList: Song[] = audioUris.map((uri, index) => {
+            const filename = uri.split("/").pop() ?? "Unknown.mp3";
+
+            // Check in static songs
+            const existing = staticSongs.find((s) => s.uri === uri);
+
+            if (existing) {
+              // Use cached/static song, enforce correct index
+              return { ...existing, index };
+            }
+
+            // Otherwise create a lightweight placeholder
+            return {
+              id: uri,
+              uri,
+              filename: fileNameFromSafUri(uri) ?? filename,
+              title:
+                displayNameFromSafUri(uri) ??
+                filename.replace(/\.[a-z0-9]+$/i, ""),
+              artist: null,
+              album: null,
+              coverArt: null,
+              index,
+              comment: null,
+              date: null,
+              duration: 0,
+              year: null,
+            };
+          });
+
+          // const sortedList = lightweightList.sort((a, b) =>
+          //   a.date > b.date
+          // );
+
+          const sortedList = lightweightList.sort(
+            (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
+          );
+
+          set({ files: sortedList, isLoading: false });
+
+          const lastSong = await AsyncStorage.getItem("song");
+          if (lastSong) {
+            const lastSongObject: Song = JSON.parse(lastSong);
+            set({
+              currentSongIndex: lastSongObject.index,
+              currentSong: lastSongObject,
+            });
+          } else {
+            set({ currentSongIndex: 0, currentSong: sortedList[0] });
+          }
+
+          const firstChunk = sortedList.slice(0, 40);
+          const rest = sortedList.slice(40);
+
+          const inflight = new Set<string>();
+          const fetched = new Set<string>();
+
+          const fetchOne = async (song: Song, idx: number) => {
+            if (
+              fetched.has(song.uri) ||
+              inflight.has(song.uri) ||
+              staticSongs.some((s) => s.uri === song.uri)
+            )
+              return;
+            inflight.add(song.uri);
+            try {
+              const info = await FileSystem.getInfoAsync(song.uri as any);
+              let modificationTime: number | undefined = undefined;
+              if (info && (info as any).exists && "modificationTime" in info) {
+                modificationTime = (info as any).modificationTime as
+                  | number
+                  | undefined;
+              }
+
+              if (modificationTime) {
+                const cached = await getCachedMetadata(
+                  song.uri,
+                  modificationTime
+                );
+                if (cached) {
+                  set((prev) => ({
+                    files: prev.files.map((f) =>
+                      f.uri === song.uri ? { ...f, ...cached, index: idx } : f
+                    ),
+                  }));
+                  fetched.add(song.uri);
+                  return;
+                }
+              } else {
+                const cachedLoose = await getCachedMetadataLoose(song.uri);
+                if (cachedLoose) {
+                  set((prev) => ({
+                    files: prev.files.map((f) =>
+                      f.uri === song.uri
+                        ? { ...f, ...cachedLoose, index: idx }
+                        : f
+                    ),
+                  }));
+                  fetched.add(song.uri);
+                  return;
+                }
+              }
+
+              const tags = await readTagsForContentUri(song.uri, cacheDir);
+
+              const merged: Song = { ...song, ...tags, index: idx };
+
+              if (modificationTime) {
+                await setCachedMetadata(song.uri, modificationTime, merged);
+              } else {
+                await setCachedMetadataLoose(song.uri, merged);
+              }
+
+              set((prev) => ({
+                files: prev.files.map((f) =>
+                  f.uri === song.uri ? { ...f, ...tags } : f
+                ),
+              }));
+              fetched.add(song.uri);
+            } catch (err) {
+              console.warn("Metadata parse failed:", err);
+            } finally {
+              inflight.delete(song.uri);
+            }
+          };
+
+          const runPool = (list: Song[], concurrency: number) => {
+            let i = 0;
+            const worker = async () => {
+              while (i < list.length) {
+                const item = list[i++];
+                await fetchOne(item, item.index);
+              }
+            };
+
+            Array.from({ length: concurrency }).forEach(() => {
+              worker().catch((e) => console.warn("Metadata worker error:", e));
+            });
+          };
+
+          runPool(firstChunk, 4);
+          runPool(rest, 2);
+        } catch (err) {
+          console.error("pickFolder error:", err);
+          set({ isLoading: false });
+        }
+      },
+      playFile: async (file: Song, duration?: number) => {
+        const engine = get().engine;
+        if (!engine) return;
+
+        await saveSongMetadata(file);
+        await engine.replace({ uri: file.uri });
+        await engine.play();
+
+        set({
+          isPlaying: true,
+          currentSong: file,
+          currentSongIndex: file.index,
+          duration: duration ?? engine.duration ?? 1,
+        });
+      },
+
+      playSong: async (
+        index: number,
+        backwardOrForward?: "backward" | "forward",
+        isRandom?: boolean
+      ) => {
+        const engine = get().engine;
+        if (!engine) return;
+
+        const { files, currentSongIndex, position, repeat } = get();
+        if (!files.length) return;
+
+        console.log("indxxxx ", index);
+
+        // const selectedIndex = index < 0 ? 0 : index;
+
+        const findSong = files.find((item) => {
+          if (item.index === index) {
+            const newItem = { ...item, index };
+
+            return newItem;
+          }
+          return false;
+        });
+
+        console.log("findSong.indx ", findSong?.index);
+        const selectedIndex =
+          typeof findSong?.index === "number" && findSong.index >= 0
+            ? findSong.index
+            : 0;
+        console.log("selectedIndex ", selectedIndex);
+
+        if (
+          selectedIndex === 0 &&
+          currentSongIndex > selectedIndex &&
+          repeat === "off"
+        ) {
+          engine.pause();
+          set({ currentSongIndex: 0, isPlaying: false, currentSong: files[0] });
+        } else if (selectedIndex >= files.length) {
+          await get().playFile(files[0]);
+          set({ currentSongIndex: 0, currentSong: files[0] });
+        } else if (
+          (currentSongIndex - 1 === selectedIndex ||
+            (isRandom && backwardOrForward === "backward")) &&
+          position >= 5
+        ) {
+          await engine.seekTo(0);
+          set({ position: 0 });
+        } else if (currentSongIndex === selectedIndex) {
+          await engine.play(); // resume
+          set({ isPlaying: true });
+        } else {
+          console.log("selectedIndex ", selectedIndex);
+          console.log("files[selectedIndex]", files[selectedIndex]);
+          console.log("findSong.index", findSong?.index);
+          await get().playFile(files[selectedIndex]);
+          set({
+            currentSongIndex: selectedIndex,
+            currentSong: files[selectedIndex],
+          });
+        }
+      },
+      playSongWithUri: async (
+        uri: string,
+        backwardOrForward?: "backward" | "forward",
+        isRandom?: boolean
+      ) => {
+        const engine = get().engine;
+        if (!engine) return;
+
+        const { files, currentSongIndex, position } = get();
+        if (!files.length) return;
+
+        const findSong = files.find((item, index) => {
+          if (item.uri === uri) {
+            // Create a copy of the item to avoid modifying the original array
+            const newItem = { ...item, index };
+
+            // Return the new object with the added index
+            return newItem;
+          }
+          return false; // Important: Return false to continue the search if not found
+        });
+        // console.log(findSong);
+
+        const selectedIndex =
+          typeof findSong?.index === "number" && findSong.index >= 0
+            ? findSong.index
+            : 0;
+
+        if (selectedIndex >= files.length || !findSong) {
+          await get().playFile(files[0]);
+          set({ currentSongIndex: 0, currentSong: files[0] });
+        } else if (
+          (currentSongIndex - 1 === selectedIndex ||
+            (isRandom && backwardOrForward === "backward")) &&
+          position >= 5
+        ) {
+          await engine.seekTo(0);
+          set({ position: 0 });
+        } else if (currentSongIndex === selectedIndex) {
+          await engine.play(); // resume
+          set({ isPlaying: true });
+        } else {
+          await get().playFile(findSong);
+          // console.log("selectedIndex ", selectedIndex);
+          // console.log("files[selectedIndex]", files[selectedIndex]);
+          // console.log("findSong.index", findSong.index);
+          set({
+            currentSongIndex: selectedIndex,
+            currentSong: files[selectedIndex],
+          });
+        }
+      },
+
+      playPauseMusic: async () => {
+        const engine = get().engine;
+        if (!engine) return;
+
+        if (engine.playing) {
+          await engine.pause();
+          set({ isPlaying: false });
+        } else {
+          await engine.play();
+          set({ isPlaying: true });
+        }
+      },
+      setIsPlaying: (val: boolean) => set({ isPlaying: val }),
+
+      handleChangeSongPosition: (pos: number) => {
+        const engine = get().engine;
+        if (!engine) return;
+        engine.seekTo(pos);
+        set({ position: pos });
+      },
+      toggleShuffle: () =>
+        set((state) => {
+          const newShuffle = !state.shuffle;
+          // AsyncStorage.setItem("shuffle", JSON.stringify(newShuffle));
+          set((s) => ({ shuffle: !s.shuffle }));
+          return { shuffle: newShuffle };
+        }),
+      toggleRepeat: () =>
+        set((state) => {
+          let next: PlayerStore["repeat"];
+          if (state.repeat === "off") {
+            next = "all";
+          } else if (state.repeat === "all") {
+            next = "one";
+          } else {
+            next = "off";
+          }
+          AsyncStorage.setItem("repeat", next);
+          return { repeat: next };
+        }),
+      favorites: [],
+      toggleFavorite: (uri) =>
+        set((s) => {
+          const exists = s.favorites.includes(uri);
+          return {
+            favorites: exists
+              ? s.favorites.filter((id) => id !== uri)
+              : [...s.favorites, uri],
+          };
+        }),
+      isFavorite: (uri) => {
+        return get().favorites.includes(uri);
+      },
+      queue: [],
+
+      addToQueue: (songs) =>
+        set((state) => {
+          const isArray = Array.isArray(songs);
+          let newSongs: Song[] = isArray ? songs : [songs];
+
+          // Shuffle if enabled
+          if (state.shuffle) {
+            newSongs = newSongs
+              .map((s) => ({ ...s })) // clone
+              .sort(() => Math.random() - 0.5); // quick shuffle
+            // OR if you install lodash: lodashShuffle(newSongs)
+          }
+
+          // For repeat = "one": just repeat the currentSong, ignore queue additions
+          if (state.repeat === "one") {
+            return state;
+          }
+
+          return {
+            queue: [...state.queue, ...newSongs],
+          };
+        }),
+      removeFromQueue: (songId) =>
+        set((state) => ({
+          queue: state.queue.filter((s) => s.id !== songId),
+        })),
+
+      clearQueue: () => set({ queue: [] }),
+
+      playAnotherSongInQueue: async (
+        type: "next" | "previous",
+        method?: "button" | "update"
+      ) => {
+        const {
+          queue,
+          playFile,
+          repeat,
+          engine,
+          setIsPlaying,
+          currentSongIndex,
+          position,
+        } = get();
+
+        if (!queue.length) return;
+
+        // Guard against auto-advance firing too early
+        if (method === "update" && position < 10) return;
+
+        // Debounce multiple "update" triggers
+        const now = Date.now();
+        if (method === "update" && now - _lastQueueAdvance < 800) {
+          console.log("What");
+          return;
+        }
+        _lastQueueAdvance = now;
+
+        // Handle repeat-one
+        if (repeat === "one") {
+          engine?.seekTo(0);
+          engine?.play();
+          setIsPlaying(true);
+          return;
+        }
+
+        // Find where currentSongIndex sits inside the queue
+        const songIndexInQueue = queue.findIndex(
+          (song) => song.index === currentSongIndex
+        );
+
+        let nextIndex =
+          songIndexInQueue === -1
+            ? type === "next"
+              ? 0
+              : queue.length - 1
+            : type === "next"
+              ? songIndexInQueue + 1
+              : songIndexInQueue - 1;
+
+        // Handle overflow/underflow
+        if (nextIndex >= queue.length) {
+          if (repeat === "all") {
+            nextIndex = 0;
+          } else {
+            engine?.pause();
+            setIsPlaying(false);
+            return;
+          }
+        } else if (nextIndex < 0) {
+          if (repeat === "all") {
+            nextIndex = queue.length - 1;
+          } else {
+            engine?.pause();
+            setIsPlaying(false);
+            return;
+          }
+        }
+
+        const nextSong = queue[nextIndex];
+        if (!nextSong) return;
+
+        await playFile(nextSong);
+
+        set({
+          currentSong: nextSong,
+          currentSongIndex: nextSong.index, // keep in sync with global files list
+        });
+
+        await new Promise((r) => setTimeout(r, 350)); // let engine settle
+      },
+      // rehydrateSettings: async () => {
+      //   try {
+      //     const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =
+      //       await Promise.all([
+      //         AsyncStorage.getItem("repeat"),
+      //         AsyncStorage.getItem("shuffle"),
+      //         AsyncStorage.getItem("volume"),
+      //         AsyncStorage.getItem("favorites"),
+      //       ]);
+      //     if (savedRepeat) {
+      //       set({ repeat: savedRepeat as PlayerStore["repeat"] });
+      //     }
+      //     if (savedShuffle) {
+      //       set({ shuffle: JSON.parse(savedShuffle) });
+      //     }
+      //     if (savedVolume) {
+      //       const vol = JSON.parse(savedVolume);
+      //       set({ volume: vol });
+      //       const engine = get().engine;
+      //       if (engine && "setVolume" in engine) {
+      //         (engine as any).setVolume(vol);
+      //       }
+      //     }
+      //     if (savedFavorites) {
+      //       set({ favorites: JSON.parse(savedFavorites) });
+      //     }
+      //     const { files } = get();
+      //     if (files.length) {
+      //       const mergedFiles = files.map((f) => {
+      //         const match = staticSongs.find((s) => s.uri === f.uri);
+      //         return match ? { ...f, ...match } : f;
+      //       });
+      //       set({ files: mergedFiles });
+      //     }
+      //   } catch (err) {
+      //     console.warn("Failed to rehydrate player settings:", err);
+      //   }
+      // },
+      setVolume: (val: number) => {
+        // AsyncStorage.setItem("volume", JSON.stringify(val));
+        set({ volume: val });
+        const engine = get().engine;
+        if (engine && "setVolume" in engine) {
+          // expo-audio engine has setVolume
+          (engine as any).setVolume(val);
+        }
+      },
+    }),
+    {
+      name: "player-settings", // key in AsyncStorage
+      storage: createJSONStorage(() => AsyncStorage),
+      partialize: (s) => ({
+        shuffle: s.shuffle,
+        repeat: s.repeat,
+        volume: s.volume,
+        favorites: s.favorites,
+      }),
     }
-  },
-}));
+  )
+);
+
+export const usePlaylistStore = create(
+  persist<{
+    playlists: Playlist[];
+    addPlaylist: (name: string, description?: string) => void;
+    removePlaylist: (id: string) => void;
+    addTrackToPlaylist: (playlistId: string, track: Song) => void;
+    removeTrackFromPlaylist: (playlistId: string, track: Song) => void;
+  }>(
+    (set) => ({
+      playlists: [],
+      addPlaylist: (name, description) =>
+        set((s) => ({
+          playlists: [
+            ...s.playlists,
+            {
+              id: uuid.v4().toString(),
+              name,
+              songs: [],
+              duration: 0,
+              description: description,
+              songsLength: 0,
+              createdAt: Date.now(),
+              updatedAt: Date.now(),
+            },
+          ],
+        })),
+      removePlaylist: (id) =>
+        set((s) => ({
+          playlists: s.playlists.filter((p) => p.id !== id),
+        })),
+      addTrackToPlaylist: (id, track) =>
+        set((s) => ({
+          playlists: s.playlists.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  songs: [...p.songs, track.uri],
+                  duration: p.duration + track.duration,
+                  songsLength: p.songsLength + 1,
+                  updatedAt: Date.now(),
+                  coverArt:
+                    p.songsLength === 0
+                      ? track.coverArt
+                        ? track.coverArt
+                        : undefined
+                      : undefined,
+                }
+              : p
+          ),
+        })),
+      removeTrackFromPlaylist: (id, track) =>
+        set((s) => ({
+          playlists: s.playlists.map((p) =>
+            p.id === id
+              ? {
+                  ...p,
+                  songs: p.songs.filter((u) => u !== track.uri),
+                  duration: p.duration - track.duration,
+                  songsLength: p.songsLength - 1,
+                  updatedAt: Date.now(),
+                }
+              : p
+          ),
+        })),
+    }),
+    {
+      name: "playlist-store",
+      storage: createJSONStorage(() => AsyncStorage),
+    }
+  )
+);

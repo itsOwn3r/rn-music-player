@@ -1,3 +1,4 @@
+import { unknownTrackImageUri } from "@/constants/images";
 import { Playlist } from "@/types/types";
 import { AntDesign } from "@expo/vector-icons";
 import {
@@ -21,7 +22,7 @@ export const PlaylistListItem = ({
       <View className="flex-row items-center pr-[90px] gap-x-3.5">
         {/* Artwork */}
         <Image
-          source={{ uri: playlist.coverArts[0] }}
+          source={{ uri: playlist.coverArt ?? unknownTrackImageUri }}
           className="w-[70px] h-[70px] rounded-lg"
         />
 

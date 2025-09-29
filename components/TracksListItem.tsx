@@ -1,9 +1,10 @@
 import { unknownTrackImageUri } from "@/constants/images";
-import { useColors } from "@/constants/tokens";
 import { Song } from "@/types/types";
 import { Entypo } from "@expo/vector-icons";
 import React, { memo } from "react";
 import { Image, Text, TouchableHighlight, View } from "react-native";
+import TrackShortcutsMenu from "./TrackShortcutsMenu";
+import StopPropagation from "./utils/StopPropagation";
 
 export type TrackListItemProps = {
   handlePlaySong: (track: Song) => void | Promise<void>;
@@ -46,11 +47,11 @@ const TracksListItem = memo(
               </Text>
             </View>
 
-            <Entypo
-              name="dots-three-horizontal"
-              size={18}
-              color={useColors().icon}
-            />
+            <StopPropagation>
+              <TrackShortcutsMenu track={track}>
+                <Entypo name="dots-three-horizontal" size={18} color="#fff" />
+              </TrackShortcutsMenu>
+            </StopPropagation>
           </View>
         </View>
       </TouchableHighlight>

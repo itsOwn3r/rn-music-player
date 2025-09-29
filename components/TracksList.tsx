@@ -23,7 +23,7 @@ const TracksList = ({
   ...rest
 }: TracksListProps) => {
   const router = useRouter();
-  const playSong = usePlayerStore((s) => s.playSong);
+  // const playSong = usePlayerStore((s) => s.playSong);
   const playSongWithUri = usePlayerStore((s) => s.playSongWithUri);
   const currentSong = usePlayerStore((s) => s.currentSong);
   const addToQueue = usePlayerStore((s) => s.addToQueue);

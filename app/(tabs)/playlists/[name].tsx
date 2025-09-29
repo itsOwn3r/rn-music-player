@@ -1,13 +1,16 @@
-import { playlists } from "@/assets/data/playlists";
 import { PlaylistTracksList } from "@/components/PlaylistTracksList";
+import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 
 import { Redirect, useLocalSearchParams } from "expo-router";
 import { View } from "react-native";
 
 const PlaylistScreen = () => {
   const { name: playlistName } = useLocalSearchParams<{ name: string }>();
+  const getPlaylists = usePlaylistStore((s) => s.playlists);
 
-  const playlist = playlists.find((playlist) => playlist.id === playlistName);
+  const playlist = getPlaylists.find(
+    (playlist) => playlist.id === playlistName
+  );
 
   if (!playlist) {
     console.warn(`Playlist ${playlistName} was not found!`);

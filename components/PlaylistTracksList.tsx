@@ -1,5 +1,6 @@
 import { useMemo, useState } from "react";
 import {
+  Alert,
   Image,
   StyleSheet,
   Text,
@@ -8,26 +9,58 @@ import {
   View,
 } from "react-native";
 
+import { unknownTrackImageUri } from "@/constants/images";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Playlist } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
+import { useRouter } from "expo-router";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
 export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
   const [search, setSearch] = useState("");
+  const files = usePlayerStore((s) => s.files);
+
+  const populatePlaylistSong = files.filter((song) =>
+    playlist.songs.includes(song.uri)
+  );
 
   const filteredPlaylistSongs = useMemo(() => {
-    if (search.trim() === "") return playlist.songs;
+    if (search.trim() === "") return populatePlaylistSong;
     const lowerSearch = search.toLowerCase();
-    return playlist.songs.filter(
+    return populatePlaylistSong.filter(
       (t) =>
         t?.title?.toLowerCase().includes(lowerSearch) ||
         t?.artist?.toLowerCase().includes(lowerSearch) ||
         t?.album?.toLowerCase().includes(lowerSearch)
     );
-  }, [playlist.songs, search]);
+  }, [populatePlaylistSong, search]);
+
+  const router = useRouter();
+
   const insets = useSafeAreaInsets();
+
+  const removePlaylist = usePlaylistStore((s) => s.removePlaylist);
+
+  const handleDeletePlaylist = (playlistId: string) => {
+    Alert.alert(
+      "Delete Playlist",
+      "Are you sure you want to delete this playlist?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Delete",
+          style: "destructive",
+          onPress: () => {
+            removePlaylist(playlistId);
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
   return (
     <View
       className="flex-1"
@@ -73,7 +106,7 @@ export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
             <View style={styles.artworkImageContainer}>
               <Image
                 source={{
-                  uri: playlist.coverArts[0],
+                  uri: playlist.coverArt ?? unknownTrackImageUri,
                 }}
                 style={styles.artworkImage}
               />
@@ -87,10 +120,24 @@ export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
               numberOfLines={1}
               className="text-sm mb-3 text-white font-bold text-center"
             >
-              By {playlist.userName}
+              {playlist.userName && "By"} {playlist.userName}
             </Text>
 
-            {search.length === 0 && <QueueControls tracks={playlist.songs} />}
+            {search.length === 0 && (
+              <QueueControls tracks={populatePlaylistSong} />
+            )}
+            <View className="w-full justify-center items-center">
+              <TouchableOpacity
+                onPress={() => handleDeletePlaylist(playlist.id)}
+                activeOpacity={0.8}
+                className="p-3 bg-[rgba(143,24,24,0.64)] rounded-lg flex-row justify-center items-center gap-x-2"
+              >
+                <Ionicons name="warning-sharp" size={22} color="#fff" />
+                <Text className="text-white font-semibold text-lg text-center">
+                  Delete playlist
+                </Text>
+              </TouchableOpacity>
+            </View>
           </View>
         }
         tracks={filteredPlaylistSongs}

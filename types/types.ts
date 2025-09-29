@@ -23,12 +23,14 @@ export type Artist = {
 export type Playlist = {
   id: string;
   name: string;
-  userId: string;
-  userName: string;
-  songs: Song[];
+  userId?: string;
+  userName?: string;
+  profileUrl?: string;
+  description?: string;
+  songs: string[];
+  songsLength: number;
+  duration: number;
+  coverArt?: string;
   createdAt: number;
   updatedAt: number;
-  coverArts: string[];
-  description?: string;
-  duration: number;
 };

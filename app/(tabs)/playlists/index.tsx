@@ -1,6 +1,5 @@
-import { playlists } from "@/assets/data/playlists";
 import PlaylistsList from "@/components/PlaylistsList";
-import { Playlist } from "@/types/types";
+import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React, { useMemo, useState } from "react";
@@ -13,7 +12,7 @@ import {
 const PlaylistScreen = () => {
   const router = useRouter();
 
-  const getPlaylists: Playlist[] = playlists;
+  const getPlaylists = usePlaylistStore((s) => s.playlists);
 
   const [search, setSearch] = useState("");
 
@@ -40,7 +39,6 @@ const PlaylistScreen = () => {
       className="flex-1 bg-[#000] px-5"
       style={{
         paddingBottom: insets.bottom === 0 ? 10 : insets.bottom - 20,
-        // paddingTop: insets.top === 0 ? 30 : insets.top,
         elevation: 2,
       }}
     >

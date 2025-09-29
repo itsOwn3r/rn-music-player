@@ -10,7 +10,6 @@ const ProgressBar = React.memo(() => {
   const handleChangeSongPosition = usePlayerStore(
     (s) => s.handleChangeSongPosition
   );
-
   return (
     <>
       <View className="flex-row justify-between px-7 mt-8">
