@@ -10,11 +10,20 @@ export type TrackListItemProps = {
   handlePlaySong: (track: Song) => void | Promise<void>;
   track: Song;
   isActive: boolean;
+  isInPlaylist: boolean;
   index: number;
+  playlistId?: string;
 };
 
 const TracksListItem = memo(
-  ({ track, handlePlaySong, isActive, index }: TrackListItemProps) => {
+  ({
+    track,
+    handlePlaySong,
+    isActive,
+    index,
+    isInPlaylist,
+    playlistId,
+  }: TrackListItemProps) => {
     // const isActiveTrack = track?.index === currentSongIndex;
     return (
       <TouchableHighlight
@@ -48,7 +57,11 @@ const TracksListItem = memo(
             </View>
 
             <StopPropagation>
-              <TrackShortcutsMenu track={track}>
+              <TrackShortcutsMenu
+                track={track}
+                isInPlaylist={isInPlaylist}
+                playlistId={playlistId}
+              >
                 <Entypo name="dots-three-horizontal" size={18} color="#fff" />
               </TrackShortcutsMenu>
             </StopPropagation>

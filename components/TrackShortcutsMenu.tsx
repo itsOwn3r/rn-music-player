@@ -1,4 +1,4 @@
-import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { useRouter } from "expo-router";
 import React, { PropsWithChildren, useState } from "react";
@@ -12,11 +12,23 @@ import {
   View,
 } from "react-native";
 
-type TrackShortcutsMenuProps = PropsWithChildren<{ track: Song }>;
+type TrackShortcutsMenuProps = PropsWithChildren<{
+  track: Song;
+  isInPlaylist: boolean;
+  playlistId?: string;
+}>;
 
-const TrackShortcutsMenu = ({ track, children }: TrackShortcutsMenuProps) => {
+const TrackShortcutsMenu = ({
+  track,
+  children,
+  isInPlaylist,
+  playlistId,
+}: TrackShortcutsMenuProps) => {
   const router = useRouter();
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const removeTrackFromPlaylist = usePlaylistStore(
+    (s) => s.removeTrackFromPlaylist
+  );
   const isFavorite = usePlayerStore((s) => s.isFavorite(track.uri));
   const [visible, setVisible] = useState(false);
 
@@ -36,6 +48,11 @@ const TrackShortcutsMenu = ({ track, children }: TrackShortcutsMenuProps) => {
   const handleActionIndex = (index: number) => {
     if (index === 0) doToggleFavorite();
     else if (index === 1) doAddToPlaylist();
+  };
+
+  const removeFromPlaylist = () => {
+    if (!playlistId) return;
+    removeTrackFromPlaylist(playlistId, track);
   };
 
   const openMenu = () => {
@@ -72,19 +89,30 @@ const TrackShortcutsMenu = ({ track, children }: TrackShortcutsMenuProps) => {
           <View className="bg-[#1c1c1e] rounded-t-2xl shadow-lg">
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"
-              onPress={doToggleFavorite}
-            >
-              <Text className="text-base text-gray-100">
-                {isFavorite ? "★ Remove from Favorites" : "☆ Add to Favorites"}
-              </Text>
-            </TouchableOpacity>
-
-            <TouchableOpacity
-              className="px-5 py-4 border-b border-white/10"
               onPress={doAddToPlaylist}
             >
               <Text className="text-base text-gray-100">
                 ➕ Add to Playlist
+              </Text>
+            </TouchableOpacity>
+
+            {isInPlaylist && (
+              <TouchableOpacity
+                className="px-5 py-4 border-b border-white/10"
+                onPress={removeFromPlaylist}
+              >
+                <Text className="text-base text-gray-100">
+                  ❌ Remove from Playlist
+                </Text>
+              </TouchableOpacity>
+            )}
+
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={doToggleFavorite}
+            >
+              <Text className="text-base text-gray-100">
+                {isFavorite ? "★ Remove from Favorites" : "☆ Add to Favorites"}
               </Text>
             </TouchableOpacity>
 

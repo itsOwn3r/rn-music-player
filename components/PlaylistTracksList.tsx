@@ -101,6 +101,8 @@ export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
         scrollEnabled={true}
         hideQueueControls={true}
         ListHeaderComponentStyle={styles.playlistHeaderContainer}
+        isInPlaylist={true}
+        playlistId={playlist.id}
         ListHeaderComponent={
           <View>
             <View style={styles.artworkImageContainer}>

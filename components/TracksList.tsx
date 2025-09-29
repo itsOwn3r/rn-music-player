@@ -9,7 +9,9 @@ import TracksListItem from "./TracksListItem";
 export type TracksListProps = Partial<FlatListProps<Song>> & {
   tracks: Song[];
   hideQueueControls?: boolean;
+  isInPlaylist?: boolean;
   search?: string;
+  playlistId?: string;
 };
 
 const ItemDivider = () => (
@@ -20,6 +22,8 @@ const TracksList = ({
   tracks,
   hideQueueControls,
   search,
+  isInPlaylist,
+  playlistId,
   ...rest
 }: TracksListProps) => {
   const router = useRouter();
@@ -57,6 +61,8 @@ const TracksList = ({
           <TracksListItem
             index={0}
             handlePlaySong={() => {}}
+            isInPlaylist={false}
+            playlistId={""}
             track={{
               title: "No results found",
               artist: "Try a different search term",
@@ -89,6 +95,8 @@ const TracksList = ({
           index={index}
           track={track}
           handlePlaySong={handlePlaySong}
+          playlistId={playlistId}
+          isInPlaylist={isInPlaylist || false}
           isActive={track.uri === currentSong?.uri} // boolean only
         />
       )}
