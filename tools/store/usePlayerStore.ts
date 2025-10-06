@@ -63,12 +63,14 @@ type PlayerStore = {
   playSong: (
     index: number,
     backwardOrForward?: "backward" | "forward",
-    isRandom?: boolean
+    isRandom?: boolean,
+    contextQueue?: Song[]
   ) => Promise<void>;
   playSongWithUri: (
     uri: string,
     backwardOrForward?: "backward" | "forward",
-    isRandom?: boolean
+    isRandom?: boolean,
+    contextQueue?: Song[]
   ) => Promise<void>;
   playPauseMusic: () => Promise<void>;
   setIsPlaying: (val: boolean) => void;
@@ -81,6 +83,8 @@ type PlayerStore = {
   toggleFavorite: (uri: string) => void;
   isFavorite: (uri: string) => boolean;
   queue: Song[]; // songs queued up
+  queueContext?: "playlist" | "search" | "library" | "custom" | null;
+  playbackPosition?: number;
   addToQueue: (songs: Song[]) => void;
   removeFromQueue: (songId: string) => void;
   clearQueue: () => void;
@@ -100,6 +104,9 @@ export const usePlayerStore = create<PlayerStore>()(
       currentSong: null,
       currentSongIndex: -1,
       isPlaying: false,
+      queue: [],
+      queueContext: null,
+      playbackPosition: 0,
       position: 0,
       duration: 1,
       isLoading: true,
@@ -117,7 +124,7 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ files: mergedFiles });
       },
       setProgress: (position, duration) =>
-        set({ position, duration: duration || 1 }),
+        set({ position, duration: duration }),
 
       pickFolder: async () => {
         set({ isLoading: true });
@@ -307,20 +314,24 @@ export const usePlayerStore = create<PlayerStore>()(
           isPlaying: true,
           currentSong: file,
           currentSongIndex: file.index,
-          duration: duration ?? engine.duration ?? 1,
+          duration: duration ?? engine.duration,
         });
       },
 
       playSong: async (
         index: number,
         backwardOrForward?: "backward" | "forward",
-        isRandom?: boolean
+        isRandom?: boolean,
+        contextQueue?: Song[]
       ) => {
         const engine = get().engine;
         if (!engine) return;
 
         const { files, currentSongIndex, position, repeat } = get();
         if (!files.length) return;
+        if (contextQueue && contextQueue.length) {
+          set({ queue: contextQueue, queueContext: "custom" });
+        }
 
         console.log("indxxxx ", index);
 
@@ -376,13 +387,18 @@ export const usePlayerStore = create<PlayerStore>()(
       playSongWithUri: async (
         uri: string,
         backwardOrForward?: "backward" | "forward",
-        isRandom?: boolean
+        isRandom?: boolean,
+        contextQueue?: Song[]
       ) => {
         const engine = get().engine;
         if (!engine) return;
 
         const { files, currentSongIndex, position } = get();
         if (!files.length) return;
+
+        if (contextQueue && contextQueue.length) {
+          set({ queue: contextQueue, queueContext: "custom" });
+        }
 
         const findSong = files.find((item, index) => {
           if (item.uri === uri) {
@@ -421,7 +437,7 @@ export const usePlayerStore = create<PlayerStore>()(
           // console.log("findSong.index", findSong.index);
           set({
             currentSongIndex: selectedIndex,
-            currentSong: files[selectedIndex],
+            currentSong: findSong,
           });
         }
       },
@@ -479,7 +495,6 @@ export const usePlayerStore = create<PlayerStore>()(
       isFavorite: (uri) => {
         return get().favorites.includes(uri);
       },
-      queue: [],
 
       addToQueue: (songs) =>
         set((state) => {
@@ -639,14 +654,29 @@ export const usePlayerStore = create<PlayerStore>()(
       },
     }),
     {
-      name: "player-settings", // key in AsyncStorage
+      name: "player-storage",
       storage: createJSONStorage(() => AsyncStorage),
       partialize: (s) => ({
-        shuffle: s.shuffle,
+        currentSong: s.currentSong,
+        currentSongIndex: s.currentSongIndex,
+        queue: s.queue,
+        queueContext: s.queueContext,
+        isPlaying: s.isPlaying,
+        playbackPosition: s.playbackPosition,
         repeat: s.repeat,
-        volume: s.volume,
+        shuffle: s.shuffle,
         favorites: s.favorites,
+        volume: s.volume,
+        files: s.files,
+        position: s.position,
+        duration: s.duration,
       }),
+      onRehydrateStorage: () => (state) => {
+        console.log(
+          "🎵 PlayerStore rehydrated with queue:",
+          state?.queue?.length ?? 0
+        );
+      },
     }
   )
 );

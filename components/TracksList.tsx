@@ -34,24 +34,11 @@ const TracksList = ({
   const clearQueue = usePlayerStore((s) => s.clearQueue);
 
   const handlePlaySong = async (track: Song) => {
-    // get real index from full list
-    // const allFiles = usePlayerStore.getState().files;
-    // const realIndex = allFiles.findIndex((f) => f.uri === track.uri);
+    const contextQueue = tracks;
 
-    // if (realIndex !== -1) {
-    if (search) {
-      clearQueue();
-      addToQueue(tracks);
-      // await playSong(realIndex);
-      playSongWithUri(track.uri);
-      router.navigate("/Playing");
-    } else {
-      clearQueue();
-      playSongWithUri(track.uri);
-      // await playSong(realIndex);
-      router.navigate("/Playing");
-    }
-    // }
+    await playSongWithUri(track.uri, undefined, false, contextQueue);
+
+    router.navigate("/Playing");
   };
 
   if (!tracks || tracks.length === 0) {

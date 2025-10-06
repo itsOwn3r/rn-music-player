@@ -1,10 +1,11 @@
 import DismissPlayerSymbol from "@/components/DismissPlayerSymbol";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
-import { Dimensions, FlatList, StyleSheet, Text, View } from "react-native";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
 
 import { useRouter } from "expo-router";
 import React from "react";
 
+import TracksList from "@/components/TracksList";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
@@ -59,7 +60,7 @@ export default function QueueScreen() {
         style={[
           {
             ...StyleSheet.absoluteFillObject,
-            backgroundColor: "rgba(0,0,0,0.5)",
+            backgroundColor: "rgba(0,0,0,1)",
           },
           backgroundStyle,
         ]}
@@ -87,15 +88,19 @@ export default function QueueScreen() {
               <Text className="text-white">Queue is empty</Text>
             </View>
           ) : (
-            <FlatList
-              className="flex-1 bg-black"
-              data={queue}
-              keyExtractor={(item, i) => i.toString()}
-              renderItem={({ item }) => (
-                <View className="flex-row items-center px-4 py-3 border-b border-neutral-800">
-                  <Text className="text-white text-base">{item.title}</Text>
-                </View>
-              )}
+            <TracksList
+              tracks={queue} // ✅ full list OR filtered
+              // extraData={currentSong?.id} // ✅ force re-render only when playing song changes
+              contentContainerStyle={{
+                paddingTop: 72,
+                paddingBottom: 128,
+              }}
+              scrollEventThrottle={16}
+              // onScroll={handleScroll}
+              hideQueueControls
+              removeClippedSubviews
+              initialNumToRender={12}
+              windowSize={11}
             />
           )}
         </Animated.View>
