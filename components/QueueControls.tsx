@@ -5,35 +5,28 @@ import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 
 const QueueControls = ({ tracks }: { tracks: Song[] }) => {
-  const handleShuffle = () => {
-    const randomIndex = Math.floor(Math.random() * tracks.length);
-    playSong(randomIndex);
-  };
-  // const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
-  const playSong = usePlayerStore((s) => s.playSong);
-  const playSongWithUri = usePlayerStore((s) => s.playSongWithUri);
-  // const currentSong = usePlayerStore((s) => s.currentSong);
   const engine = usePlayerStore((s) => s.engine);
-  const addToQueue = usePlayerStore((s) => s.addToQueue);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
+  const playSongGeneric = usePlayerStore((s) => s.playSongGeneric);
+  const handleShuffle = async () => {
+    clearQueue();
+    const randomIndex = Math.floor(Math.random() * tracks.length);
+    // await playAnotherSongInQueue("next", "update");
+    await playSongGeneric(tracks[randomIndex], {
+      contextQueue: tracks,
+      isRandom: true,
+    });
+  };
 
   const handlePlay = async () => {
     clearQueue();
-    addToQueue(tracks);
-    // console.log(tracks);
-    playSongWithUri(tracks[0].uri, "forward");
+    await playSongGeneric(tracks[0], {
+      contextQueue: tracks,
+      isRandom: true,
+    });
     engine?.play();
-    // console.log("Loaded");
   };
-  // const handlePlay = async () => {
-  //   if (!engine?.isLoaded && currentSong?.uri) {
-  //     engine?.replace({ uri: currentSong.uri });
-  //     engine?.seekTo(0);
-  //     await playSong(currentSong?.index || 0);
-  //   } else {
-  //     await playPauseMusic();
-  //   }
-  // };
+
   return (
     <View className="flex flex-row items-center justify-center gap-x-8 w-full mb-2 ">
       {/* Play button */}

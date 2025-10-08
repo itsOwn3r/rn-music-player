@@ -1,12 +1,18 @@
+// app/Queue.tsx
+
 import DismissPlayerSymbol from "@/components/DismissPlayerSymbol";
-import { usePlayerStore } from "@/tools/store/usePlayerStore";
-import { Dimensions, StyleSheet, Text, View } from "react-native";
-
-import { useRouter } from "expo-router";
-import React from "react";
-
 import TracksList from "@/components/TracksList";
-import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { Song } from "@/types/types"; // ✅ Import Song type
+import { useRouter } from "expo-router";
+// ✅ Import React hooks and FlatList type
+import React, { useEffect, useRef } from "react";
+import { Dimensions, StyleSheet, Text, View } from "react-native";
+import {
+  FlatList,
+  Gesture,
+  GestureDetector,
+} from "react-native-gesture-handler";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -18,11 +24,37 @@ import { SafeAreaView } from "react-native-safe-area-context";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function QueueScreen() {
-  const queue = usePlayerStore((s) => s.queue);
-  const translateY = useSharedValue(0);
   const router = useRouter();
+  const queue = usePlayerStore((s) => s.queue);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const translateY = useSharedValue(0);
 
-  // Pan gesture
+  // ✨ 1. Create a ref for the FlatList
+  const flatListRef = useRef<FlatList<Song>>(null);
+
+  // ✨ 2. Add a useEffect to scroll to the item
+  useEffect(() => {
+    if (!currentSong || !queue.length) return;
+
+    const songIndex = queue.findIndex((track) => track.uri === currentSong.uri);
+
+    // Only scroll if the song is found in the queue
+    if (songIndex !== -1) {
+      // Use a timeout to ensure the list has had time to render.
+      // This is a common pattern in React Native to avoid race conditions.
+      const timer = setTimeout(() => {
+        flatListRef.current?.scrollToIndex({
+          index: songIndex,
+          animated: true,
+          viewPosition: 0.5, // 0.5 scrolls the item to the center
+        });
+      }, 250); // 250ms delay
+
+      return () => clearTimeout(timer); // Cleanup the timer
+    }
+  }, [currentSong, queue]); // Rerun if the song or queue changes
+
+  // ... (panGesture and animated styles remain unchanged)
   const panGesture = Gesture.Pan()
     .onUpdate((e) => {
       if (e.translationY > 0) {
@@ -33,28 +65,25 @@ export default function QueueScreen() {
       if (e.translationY > 150) {
         runOnJS(router.back)();
       } else {
-        // Bouncy spring back
         translateY.value = withSpring(0, {
-          damping: 12, // less damping = more oscillation
-          stiffness: 120, // spring stiffness
-          mass: 0.8, // affects bounciness
-          overshootClamping: false, // allow it to "go past" and bounce
+          damping: 12,
+          stiffness: 120,
+          mass: 0.8,
+          overshootClamping: false,
         });
       }
     });
 
-  // Background fade style
   const backgroundStyle = useAnimatedStyle(() => ({
     opacity: 1 - translateY.value / SCREEN_HEIGHT,
   }));
 
-  // Card movement style
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
 
   return (
-    <SafeAreaView className="flex-1 h-screen">
+    <SafeAreaView className="flex-1">
       {/* Background overlay */}
       <Animated.View
         style={[
@@ -89,14 +118,15 @@ export default function QueueScreen() {
             </View>
           ) : (
             <TracksList
-              tracks={queue} // ✅ full list OR filtered
-              // extraData={currentSong?.id} // ✅ force re-render only when playing song changes
+              // ✨ 3. Pass the ref to the TracksList component
+              ref={flatListRef}
+              tracks={queue}
+              isInQueue={true}
               contentContainerStyle={{
                 paddingTop: 72,
                 paddingBottom: 128,
               }}
               scrollEventThrottle={16}
-              // onScroll={handleScroll}
               hideQueueControls
               removeClippedSubviews
               initialNumToRender={12}

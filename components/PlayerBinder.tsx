@@ -53,7 +53,7 @@ export default function PlayerBinder() {
 
   useEffect(() => {
     const update = async () => {
-      if (status.isLoaded) {
+      if (status.isLoaded && isPlaying) {
         // --- Smooth progress (only while actually playing) ---
         let smoothTime = status.currentTime;
 
@@ -101,28 +101,8 @@ export default function PlayerBinder() {
               await engine.play();
             } else if (queue.length > 0) {
               await playAnotherSongInQueue("next", "update");
-            } else if (shuffle) {
-              if (files.length > 0) {
-                const randomIndex = Math.floor(Math.random() * files.length);
-                await playSong(randomIndex);
-              }
-            } else if (repeat === "all") {
-              const nextIndex = currentSongIndex + 1;
-              if (nextIndex < files.length) {
-                await playSong(nextIndex);
-              } else {
-                // loop to start
-                await playSong(0);
-              }
             } else {
-              // repeat === "off"
-              if (currentSongIndex + 1 < files.length) {
-                await playSong(currentSongIndex + 1);
-              } else {
-                // end of playlist -> stop
-                await engine.pause();
-                setIsPlaying(false);
-              }
+              console.log("Wronged");
             }
           } finally {
             // give engine a short time to settle before allowing another advance

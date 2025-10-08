@@ -72,6 +72,14 @@ type PlayerStore = {
     isRandom?: boolean,
     contextQueue?: Song[]
   ) => Promise<void>;
+  playSongGeneric: (
+    song: Song,
+    options?: {
+      contextQueue?: Song[];
+      isRandom?: boolean;
+      fromUserAction?: boolean;
+    }
+  ) => Promise<void>;
   playPauseMusic: () => Promise<void>;
   setIsPlaying: (val: boolean) => void;
   handleChangeSongPosition: (pos: number) => void;
@@ -442,6 +450,72 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
 
+      // playSongGeneric: async (song, opts = {}) => {
+      playSongGeneric: async (
+        song: Song,
+        opts?: {
+          contextQueue?: Song[];
+          direction?: "forward" | "backward";
+          isRandom?: boolean; // TODO
+        }
+      ) => {
+        const { engine, queue, currentSong, repeat, position, shuffle } = get();
+        if (!engine) return;
+
+        const effectiveQueue = opts?.contextQueue ?? queue;
+
+        if (opts?.contextQueue) {
+          set({ queue: opts.contextQueue });
+        }
+
+        const selectedIndex = effectiveQueue.findIndex(
+          (s) => s.uri === song.uri
+        );
+
+        const currentIndex = effectiveQueue.findIndex(
+          (s) => s.uri === currentSong?.uri
+        );
+
+        // --- ① At beginning, repeat off, user pressed back
+        if (
+          selectedIndex === 0 &&
+          currentIndex > selectedIndex &&
+          repeat === "off"
+        ) {
+          engine.pause();
+          set({ isPlaying: false, currentSong: effectiveQueue[0] });
+          return;
+        }
+
+        // --- ② At end, wrap to first
+        if (selectedIndex >= effectiveQueue.length) {
+          await get().playFile(effectiveQueue[0]);
+          set({ currentSong: effectiveQueue[0], isPlaying: true });
+          return;
+        }
+
+        // --- ③ User pressed "previous" mid-song
+        if (
+          (currentIndex - 1 === selectedIndex ||
+            (shuffle && opts?.direction === "backward")) &&
+          position >= 5
+        ) {
+          await engine.seekTo(0);
+          set({ position: 0 });
+          return;
+        }
+
+        // --- ④ Same song -> resume
+        if (currentSong?.uri === song.uri) {
+          await engine.play();
+          set({ isPlaying: true });
+          return;
+        }
+
+        // --- ⑤ Normal case: play new song
+        await get().playFile(song);
+        set({ currentSong: song, isPlaying: true });
+      },
       playPauseMusic: async () => {
         const engine = get().engine;
         if (!engine) return;
@@ -535,8 +609,9 @@ export const usePlayerStore = create<PlayerStore>()(
           repeat,
           engine,
           setIsPlaying,
-          currentSongIndex,
+          currentSong,
           position,
+          shuffle,
         } = get();
 
         if (!queue.length) return;
@@ -562,7 +637,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         // Find where currentSongIndex sits inside the queue
         const songIndexInQueue = queue.findIndex(
-          (song) => song.index === currentSongIndex
+          (song) => song.uri === currentSong?.uri
         );
 
         let nextIndex =
@@ -579,8 +654,17 @@ export const usePlayerStore = create<PlayerStore>()(
           if (repeat === "all") {
             nextIndex = 0;
           } else {
+            nextIndex = 0;
             engine?.pause();
             setIsPlaying(false);
+            engine?.replace({ uri: queue[nextIndex].uri });
+            const nextSong = queue[nextIndex];
+            set({
+              position: 0,
+              duration: engine?.duration ?? nextSong.duration,
+              currentSong: nextSong,
+              currentSongIndex: nextSong.index, // keep in sync with global files list
+            });
             return;
           }
         } else if (nextIndex < 0) {
@@ -591,6 +675,10 @@ export const usePlayerStore = create<PlayerStore>()(
             setIsPlaying(false);
             return;
           }
+        }
+
+        if (shuffle) {
+          nextIndex = Math.floor(Math.random() * queue.length);
         }
 
         const nextSong = queue[nextIndex];
@@ -661,7 +749,6 @@ export const usePlayerStore = create<PlayerStore>()(
         currentSongIndex: s.currentSongIndex,
         queue: s.queue,
         queueContext: s.queueContext,
-        isPlaying: s.isPlaying,
         playbackPosition: s.playbackPosition,
         repeat: s.repeat,
         shuffle: s.shuffle,
