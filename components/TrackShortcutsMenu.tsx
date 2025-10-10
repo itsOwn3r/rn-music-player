@@ -1,3 +1,4 @@
+import { fetchLyrics } from "@/tools/fetchLyrics";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { useRouter } from "expo-router";
@@ -30,6 +31,9 @@ const TrackShortcutsMenu = ({
     (s) => s.removeTrackFromPlaylist
   );
   const isFavorite = usePlayerStore((s) => s.isFavorite(track.uri));
+
+  const setLyrics = usePlayerStore((s) => s.setLyrics);
+
   const [visible, setVisible] = useState(false);
 
   const doToggleFavorite = () => {
@@ -87,6 +91,13 @@ const TrackShortcutsMenu = ({
           onPress={() => setVisible(false)}
         >
           <View className="bg-[#1c1c1e] rounded-t-2xl shadow-lg">
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={() => fetchLyrics(track, setLyrics)}
+            >
+              <Text className="text-base text-gray-100">⬇ Fetch Lyrics</Text>
+            </TouchableOpacity>
+
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"
               onPress={doAddToPlaylist}

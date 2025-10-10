@@ -12,10 +12,14 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 
+import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { MaterialIcons } from "@expo/vector-icons";
 
 const PlayerFooter = ({ currentSong }: { currentSong: Song | null }) => {
   const router = useRouter();
+
+  const showLyrics = usePlayerStore((s) => s.showLyrics);
+  const toggleShowLyrics = usePlayerStore((s) => s.toggleShowLyrics);
 
   const addToPlaylist = () => {
     router.push({
@@ -25,7 +29,7 @@ const PlayerFooter = ({ currentSong }: { currentSong: Song | null }) => {
   };
 
   const openLyrics = () => {
-    // TODO toggle lyrics
+    toggleShowLyrics();
   };
 
   // const openComments = () => {
@@ -53,6 +57,7 @@ const PlayerFooter = ({ currentSong }: { currentSong: Song | null }) => {
       icon: "lyrics",
       label: "Lyrics",
       onPress: openLyrics,
+      isActive: showLyrics,
     },
     // {
     //   icon: "insert-comment",
@@ -93,10 +98,12 @@ const AnimatedButton = ({
   icon: Icon,
   label,
   onPress,
+  isActive,
 }: {
   icon: any;
   label: string;
   onPress: () => void;
+  isActive?: boolean;
 }) => {
   const scale = useSharedValue(1);
   const glow = useSharedValue(0);
@@ -140,6 +147,7 @@ const AnimatedButton = ({
           onLongPress={handleLongPress}
           activeOpacity={0.8}
           className="size-14 rounded-full bg-[#111] border border-[#2b2b2b] justify-center items-center"
+          style={{ opacity: isActive === false ? 0.5 : 1 }}
         >
           <MaterialIcons name={Icon} size={20} color="#fff" />
         </TouchableOpacity>

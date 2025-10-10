@@ -10,8 +10,10 @@ import {
 import PlayerFooter from "@/components/PlayerFooter";
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
+import SyncedLyrics from "@/components/SyncedLyrics";
+import { fetchLyrics } from "@/tools/fetchLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
-import { FontAwesome } from "@expo/vector-icons";
+import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
 import {
@@ -39,6 +41,10 @@ export default function PlayingScreen() {
   const translateY = useSharedValue(0);
 
   const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+
+  const setLyrics = usePlayerStore((s) => s.setLyrics);
+
+  const showLyrics = usePlayerStore((s) => s.showLyrics);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
   const isFavorite = usePlayerStore((s) =>
@@ -75,19 +81,20 @@ export default function PlayingScreen() {
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
-
   return (
     <SafeAreaView className="flex-1 h-screen">
       {/* Background overlay */}
-      <Animated.View
-        style={[
-          {
-            ...StyleSheet.absoluteFillObject,
-            backgroundColor: "rgba(0,0,0,1)",
-          },
-          backgroundStyle,
-        ]}
-      />
+      <Animated.View style={StyleSheet.absoluteFillObject}>
+        <Animated.View
+          style={[
+            {
+              flex: 1,
+              backgroundColor: "rgba(0,0,0,1)",
+            },
+            backgroundStyle,
+          ]}
+        />
+      </Animated.View>
 
       {/* Draggable card */}
       <GestureDetector gesture={panGesture}>
@@ -107,7 +114,7 @@ export default function PlayingScreen() {
           {/* Your player content goes here */}
           <View className="mt-20">
             <View
-              className={`items-center rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
+              className={` relative items-start rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
             >
               <Image
                 source={
@@ -120,6 +127,30 @@ export default function PlayingScreen() {
                 width={250}
                 height={250}
               />
+              {showLyrics &&
+                (currentSong?.lyrics ? (
+                  <View className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center">
+                    <SyncedLyrics
+                      lrc={
+                        currentSong.syncedLyrics
+                          ? currentSong.syncedLyrics
+                          : currentSong.lyrics
+                      }
+                    />
+                  </View>
+                ) : (
+                  <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center">
+                    <Text className="text-white text-2xl">No Lyrics :(</Text>
+                    <TouchableOpacity
+                      onPress={() => fetchLyrics(currentSong, setLyrics)}
+                      activeOpacity={0.8}
+                      className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
+                      // style={{ opacity: isActive === false ? 0.5 : 1 }}
+                    >
+                      <MaterialIcons name="download" size={20} color="#fff" />
+                    </TouchableOpacity>
+                  </View>
+                ))}
             </View>
 
             {/* Song Info */}

@@ -14,7 +14,6 @@ const QueueControls = ({ tracks }: { tracks: Song[] }) => {
     // await playAnotherSongInQueue("next", "update");
     await playSongGeneric(tracks[randomIndex], {
       contextQueue: tracks,
-      isRandom: true,
     });
   };
 
@@ -22,7 +21,6 @@ const QueueControls = ({ tracks }: { tracks: Song[] }) => {
     clearQueue();
     await playSongGeneric(tracks[0], {
       contextQueue: tracks,
-      isRandom: true,
     });
     engine?.play();
   };

@@ -51,6 +51,8 @@ type PlayerStore = {
 
   shuffle: boolean;
 
+  showLyrics: boolean;
+
   repeat: "off" | "all" | "one";
 
   // engine binding + progress
@@ -84,6 +86,7 @@ type PlayerStore = {
   handleChangeSongPosition: (pos: number) => void;
   toggleShuffle: () => void;
   toggleRepeat: () => void;
+  toggleShowLyrics: () => void;
   volume: number;
   setVolume: (val: number) => void;
   favorites: string[]; // store song IDs
@@ -100,6 +103,7 @@ type PlayerStore = {
     method?: "button" | "update"
   ) => Promise<void>;
   setFiles: (files: Song[]) => void;
+  setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -118,18 +122,34 @@ export const usePlayerStore = create<PlayerStore>()(
       duration: 1,
       isLoading: true,
       shuffle: false,
+      showLyrics: false,
       repeat: "off",
       volume: 1,
 
       bindEngine: (engine) => set({ engine }),
       setFiles: (files) => {
-        // Merge scanned files with staticSongs once here
+        const prevFiles = get().files;
+
+        // Merge with persisted lyrics/syncedLyrics if available
         const mergedFiles = files.map((f) => {
-          const match = staticSongs.find((s) => s.uri === f.uri);
-          return match ? { ...f, ...match } : f;
+          const existing = prevFiles.find((pf) => pf.uri === f.uri);
+          const staticMatch = staticSongs.find((s) => s.uri === f.uri);
+
+          return {
+            ...f,
+            ...(staticMatch ?? {}), // merge static info if available
+            ...(existing
+              ? {
+                  lyrics: existing.lyrics ?? null,
+                  syncedLyrics: existing.syncedLyrics ?? null,
+                }
+              : {}),
+          };
         });
+
         set({ files: mergedFiles });
       },
+
       setProgress: (position, duration) =>
         set({ position, duration: duration }),
 
@@ -189,6 +209,8 @@ export const usePlayerStore = create<PlayerStore>()(
               date: null,
               duration: 0,
               year: null,
+              lyrics: null,
+              syncedLyrics: null,
             };
           });
 
@@ -200,7 +222,23 @@ export const usePlayerStore = create<PlayerStore>()(
             (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
           );
 
-          set({ files: sortedList, isLoading: false });
+          // Merge persisted lyrics/syncedLyrics into the freshly scanned list
+          const existingFiles = get().files ?? [];
+
+          const mergedList: Song[] = sortedList.map((song) => {
+            const existing = existingFiles.find((f) => f.uri === song.uri);
+            const staticMatch = staticSongs.find((s) => s.uri === song.uri);
+
+            return {
+              ...song,
+              ...(staticMatch ?? {}), // keep static metadata if present
+              // preserve previously-saved lyrics if available, otherwise keep whatever came from the scan (or null)
+              lyrics: existing?.lyrics ?? song.lyrics ?? null,
+              syncedLyrics: existing?.syncedLyrics ?? song.syncedLyrics ?? null,
+            };
+          });
+
+          set({ files: mergedList, isLoading: false });
 
           const lastSong = await AsyncStorage.getItem("song");
           if (lastSong) {
@@ -315,6 +353,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         await saveSongMetadata(file);
         await engine.replace({ uri: file.uri });
+        await engine.seekTo(0);
         await engine.play();
 
         set({
@@ -322,6 +361,7 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong: file,
           currentSongIndex: file.index,
           duration: duration ?? engine.duration,
+          position: 0,
         });
       },
 
@@ -457,8 +497,10 @@ export const usePlayerStore = create<PlayerStore>()(
           direction?: "forward" | "backward";
         }
       ) => {
-        const { engine, queue, currentSong, repeat, position, shuffle } = get();
+        const { engine, queue, currentSong, position, shuffle } = get();
         if (!engine) return;
+
+        // console.log(song);
 
         const effectiveQueue = opts?.contextQueue ?? queue;
 
@@ -473,24 +515,6 @@ export const usePlayerStore = create<PlayerStore>()(
         const currentIndex = effectiveQueue.findIndex(
           (s) => s.uri === currentSong?.uri
         );
-
-        // --- ① At beginning, repeat off, user pressed back
-        if (
-          selectedIndex === 0 &&
-          currentIndex > selectedIndex &&
-          repeat === "off"
-        ) {
-          engine.pause();
-          set({ isPlaying: false, currentSong: effectiveQueue[0] });
-          return;
-        }
-
-        // --- ② At end, wrap to first
-        if (selectedIndex >= effectiveQueue.length) {
-          await get().playFile(effectiveQueue[0]);
-          set({ currentSong: effectiveQueue[0], isPlaying: true });
-          return;
-        }
 
         // --- ③ User pressed "previous" mid-song
         if (
@@ -512,7 +536,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
         // --- ⑤ Normal case: play new song
         await get().playFile(song);
-        set({ currentSong: song, isPlaying: true });
+        set({ currentSong: song, isPlaying: true, position: 0 });
       },
       playPauseMusic: async () => {
         const engine = get().engine;
@@ -553,6 +577,12 @@ export const usePlayerStore = create<PlayerStore>()(
           }
           AsyncStorage.setItem("repeat", next);
           return { repeat: next };
+        }),
+      toggleShowLyrics: () =>
+        set((state) => {
+          const newState = !state.showLyrics;
+          set((s) => ({ showLyrics: !s.showLyrics }));
+          return { showLyrics: newState };
         }),
       favorites: [],
       toggleFavorite: (uri) =>
@@ -738,6 +768,18 @@ export const usePlayerStore = create<PlayerStore>()(
           (engine as any).setVolume(val);
         }
       },
+      setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) =>
+        set((state) => ({
+          files: state.files.map((f) =>
+            f.uri === uri
+              ? {
+                  ...f,
+                  lyrics,
+                  ...(syncedLyrics ? { syncedLyrics } : {}), // 👈 only add if defined
+                }
+              : f
+          ),
+        })),
     }),
     {
       name: "player-storage",
@@ -750,6 +792,7 @@ export const usePlayerStore = create<PlayerStore>()(
         playbackPosition: s.playbackPosition,
         repeat: s.repeat,
         shuffle: s.shuffle,
+        showLyrics: s.showLyrics,
         favorites: s.favorites,
         volume: s.volume,
         files: s.files,

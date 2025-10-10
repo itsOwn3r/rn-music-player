@@ -12,6 +12,8 @@ export interface Song {
   duration: number | 0;
   id?: string | null;
   isFavorite?: boolean;
+  lyrics?: string | null;
+  syncedLyrics?: string | null;
 }
 
 export type Artist = {

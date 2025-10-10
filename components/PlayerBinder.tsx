@@ -50,7 +50,7 @@ export default function PlayerBinder() {
   }, [engine, bindEngine]);
 
   const advancingRef = useRef(false);
-
+  const lastReported = useRef(0);
   useEffect(() => {
     const update = async () => {
       if (status.isLoaded && isPlaying) {
@@ -65,14 +65,24 @@ export default function PlayerBinder() {
           status.duration &&
           !advancingRef.current
         ) {
+          // Initialize refs if unset (avoid giant elapsed time)
+          if (lastEngineUpdate.current === 0) {
+            lastEngineUpdate.current = Date.now();
+            lastEngineTime.current = status.currentTime;
+          }
+
+          // Update only when engine time actually changes
           if (status.currentTime !== lastEngineTime.current) {
             lastEngineTime.current = status.currentTime;
             lastEngineUpdate.current = Date.now();
           }
-          const elapsed = (Date.now() - lastEngineUpdate.current) / 1000;
+
+          const elapsed = Math.max(
+            0,
+            (Date.now() - lastEngineUpdate.current) / 1000
+          );
           smoothTime = lastEngineTime.current + elapsed;
         } else {
-          // paused / stopped / advancing -> trust engine-reported time (no interpolation)
           smoothTime = status.currentTime;
         }
 
@@ -83,7 +93,10 @@ export default function PlayerBinder() {
           smoothTime = Math.max(smoothTime, status.currentTime);
         }
 
-        setProgress(smoothTime, status.duration || 1);
+        if (Math.abs(smoothTime - lastReported.current) > 0.04) {
+          lastReported.current = smoothTime;
+          setProgress(smoothTime, status.duration || 1);
+        }
 
         // --- End-of-track handling ---
         // Only auto-advance if the store believes playback is active (prevents advancing while paused)
