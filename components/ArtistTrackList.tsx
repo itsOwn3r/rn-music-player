@@ -15,8 +15,6 @@ import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
 const ArtistTrackList = ({ artist }: { artist: Artist }) => {
-  // TODO add search in current singer's songs
-
   const [search, setSearch] = useState("");
 
   // Filtered tracks based on search
@@ -38,7 +36,7 @@ const ArtistTrackList = ({ artist }: { artist: Artist }) => {
         <View className="flex-row items-center w-full bg-neutral-800 rounded-lg px-3">
           <TextInput
             className="text-white text-base flex-1 py-2"
-            placeholder="Search in Artists"
+            placeholder={`Search in ${artist.name}'s songs`}
             placeholderTextColor="#999"
             value={search}
             onChangeText={setSearch}

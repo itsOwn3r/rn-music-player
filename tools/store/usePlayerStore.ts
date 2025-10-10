@@ -76,7 +76,6 @@ type PlayerStore = {
     song: Song,
     options?: {
       contextQueue?: Song[];
-      isRandom?: boolean;
       fromUserAction?: boolean;
     }
   ) => Promise<void>;
@@ -456,7 +455,6 @@ export const usePlayerStore = create<PlayerStore>()(
         opts?: {
           contextQueue?: Song[];
           direction?: "forward" | "backward";
-          isRandom?: boolean; // TODO
         }
       ) => {
         const { engine, queue, currentSong, repeat, position, shuffle } = get();

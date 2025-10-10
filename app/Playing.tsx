@@ -7,6 +7,7 @@ import {
   SkipToLastButton,
   SkipToNextButton,
 } from "@/components/PlayerControls";
+import PlayerFooter from "@/components/PlayerFooter";
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
@@ -192,6 +193,7 @@ export default function PlayingScreen() {
             </View>
           </View>
           <PlayerVolumeBar />
+          <PlayerFooter currentSong={currentSong} />
         </Animated.View>
       </GestureDetector>
     </SafeAreaView>

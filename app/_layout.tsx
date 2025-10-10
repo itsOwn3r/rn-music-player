@@ -40,7 +40,8 @@ export default function Layout() {
               gestureDirection: "vertical",
               animationDuration: 100,
               headerShown: false,
-              animation: "slide_from_bottom", // smoother exit
+              animation: "slide_from_bottom",
+              navigationBarHidden: true,
             }}
           />
           <Stack.Screen
@@ -51,7 +52,7 @@ export default function Layout() {
               gestureDirection: "vertical",
               animationDuration: 100,
               headerShown: false,
-              animation: "slide_from_bottom", // smoother exit
+              animation: "slide_from_bottom",
             }}
           />
           <Stack.Screen
