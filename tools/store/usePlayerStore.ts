@@ -269,15 +269,24 @@ export const usePlayerStore = create<PlayerStore>()(
                   ? info.modificationTime
                   : undefined;
 
-              let cached: Song | null = null;
-              if (modificationTime)
-                cached = await getCachedMetadata(song.uri, modificationTime);
-              if (!cached) cached = await getCachedMetadataLoose(song.uri);
+              const cached =
+                (modificationTime !== undefined &&
+                  (await getCachedMetadata(song.uri, modificationTime))) ||
+                (await getCachedMetadataLoose(song.uri));
 
               if (cached) {
                 set((prev) => ({
                   files: prev.files.map((f) =>
-                    f.uri === song.uri ? { ...f, ...cached, index: idx } : f
+                    f.uri === song.uri
+                      ? {
+                          ...f,
+                          ...cached,
+                          index: idx,
+                          lyrics: f.lyrics ?? cached.lyrics ?? null,
+                          syncedLyrics:
+                            f.syncedLyrics ?? cached.syncedLyrics ?? null,
+                        }
+                      : f
                   ),
                 }));
                 fetched.add(song.uri);
@@ -297,7 +306,16 @@ export const usePlayerStore = create<PlayerStore>()(
 
               set((prev) => ({
                 files: prev.files.map((f) =>
-                  f.uri === song.uri ? { ...f, ...tags, index: idx } : f
+                  f.uri === song.uri
+                    ? {
+                        ...f,
+                        ...tags,
+                        index: idx,
+                        lyrics: f.lyrics ?? tags.lyrics ?? null,
+                        syncedLyrics:
+                          f.syncedLyrics ?? tags.syncedLyrics ?? null,
+                      }
+                    : f
                 ),
               }));
               fetched.add(song.uri);
