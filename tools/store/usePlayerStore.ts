@@ -260,51 +260,31 @@ export const usePlayerStore = create<PlayerStore>()(
           const fetched = new Set<string>();
 
           const fetchOne = async (song: Song, idx: number) => {
-            if (
-              fetched.has(song.uri) ||
-              inflight.has(song.uri) ||
-              staticSongs.some((s) => s.uri === song.uri)
-            )
-              return;
+            if (fetched.has(song.uri) || inflight.has(song.uri)) return;
             inflight.add(song.uri);
             try {
               const info = await FileSystem.getInfoAsync(song.uri as any);
-              let modificationTime: number | undefined = undefined;
-              if (info && (info as any).exists && "modificationTime" in info) {
-                modificationTime = (info as any).modificationTime as
-                  | number
-                  | undefined;
+              const modificationTime =
+                info.exists && "modificationTime" in info
+                  ? info.modificationTime
+                  : undefined;
+
+              let cached: Song | null = null;
+              if (modificationTime)
+                cached = await getCachedMetadata(song.uri, modificationTime);
+              if (!cached) cached = await getCachedMetadataLoose(song.uri);
+
+              if (cached) {
+                set((prev) => ({
+                  files: prev.files.map((f) =>
+                    f.uri === song.uri ? { ...f, ...cached, index: idx } : f
+                  ),
+                }));
+                fetched.add(song.uri);
+                return;
               }
 
-              if (modificationTime) {
-                const cached = await getCachedMetadata(
-                  song.uri,
-                  modificationTime
-                );
-                if (cached) {
-                  set((prev) => ({
-                    files: prev.files.map((f) =>
-                      f.uri === song.uri ? { ...f, ...cached, index: idx } : f
-                    ),
-                  }));
-                  fetched.add(song.uri);
-                  return;
-                }
-              } else {
-                const cachedLoose = await getCachedMetadataLoose(song.uri);
-                if (cachedLoose) {
-                  set((prev) => ({
-                    files: prev.files.map((f) =>
-                      f.uri === song.uri
-                        ? { ...f, ...cachedLoose, index: idx }
-                        : f
-                    ),
-                  }));
-                  fetched.add(song.uri);
-                  return;
-                }
-              }
-
+              // Force read metadata if not cached
               const tags = await readTagsForContentUri(song.uri, cacheDir);
 
               const merged: Song = { ...song, ...tags, index: idx };
@@ -317,7 +297,7 @@ export const usePlayerStore = create<PlayerStore>()(
 
               set((prev) => ({
                 files: prev.files.map((f) =>
-                  f.uri === song.uri ? { ...f, ...tags } : f
+                  f.uri === song.uri ? { ...f, ...tags, index: idx } : f
                 ),
               }));
               fetched.add(song.uri);
@@ -499,34 +479,11 @@ export const usePlayerStore = create<PlayerStore>()(
           direction?: "forward" | "backward";
         }
       ) => {
-        const { engine, queue, currentSong, position, shuffle } = get();
+        const { engine, currentSong } = get();
         if (!engine) return;
-
-        // console.log(song);
-
-        const effectiveQueue = opts?.contextQueue ?? queue;
 
         if (opts?.contextQueue) {
           set({ queue: opts.contextQueue });
-        }
-
-        const selectedIndex = effectiveQueue.findIndex(
-          (s) => s.uri === song.uri
-        );
-
-        const currentIndex = effectiveQueue.findIndex(
-          (s) => s.uri === currentSong?.uri
-        );
-
-        // --- ③ User pressed "previous" mid-song
-        if (
-          (currentIndex - 1 === selectedIndex ||
-            (shuffle && opts?.direction === "backward")) &&
-          position >= 5
-        ) {
-          await engine.seekTo(0);
-          set({ position: 0 });
-          return;
         }
 
         // --- ④ Same song -> resume
