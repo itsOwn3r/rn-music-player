@@ -15,7 +15,7 @@ import { fetchLyrics } from "@/tools/fetchLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   Dimensions,
   Image,
@@ -37,6 +37,7 @@ import TextTicker from "react-native-text-ticker";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function PlayingScreen() {
+  const [lyricsPlaceholder, setLyricsPlaceholder] = useState("");
   const router = useRouter();
   const translateY = useSharedValue(0);
 
@@ -50,6 +51,12 @@ export default function PlayingScreen() {
   const isFavorite = usePlayerStore((s) =>
     s.isFavorite(currentSong?.uri || "")
   );
+
+  const handleFetchingLyrics = async () => {
+    const lyrics = await fetchLyrics(currentSong, setLyrics);
+    // router.reload();
+    setLyricsPlaceholder(lyrics);
+  };
 
   // Pan gesture
   const panGesture = Gesture.Pan()
@@ -128,13 +135,15 @@ export default function PlayingScreen() {
                 height={250}
               />
               {showLyrics &&
-                (currentSong?.lyrics ? (
+                (currentSong?.lyrics || lyricsPlaceholder ? (
                   <View className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center">
                     <SyncedLyrics
                       lrc={
-                        currentSong.syncedLyrics
-                          ? currentSong.syncedLyrics
-                          : currentSong.lyrics
+                        lyricsPlaceholder
+                          ? lyricsPlaceholder
+                          : currentSong?.syncedLyrics
+                            ? currentSong.syncedLyrics
+                            : currentSong?.lyrics || ""
                       }
                     />
                   </View>
@@ -142,7 +151,7 @@ export default function PlayingScreen() {
                   <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center">
                     <Text className="text-white text-2xl">No Lyrics :(</Text>
                     <TouchableOpacity
-                      onPress={() => fetchLyrics(currentSong, setLyrics)}
+                      onPress={() => handleFetchingLyrics()}
                       activeOpacity={0.8}
                       className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
                       // style={{ opacity: isActive === false ? 0.5 : 1 }}

@@ -20,8 +20,12 @@ export const fetchLyrics = async (
   if (response.plainLyrics) {
     if (response.plainLyrics && response.syncedLyrics) {
       setLyrics(track.uri, response.plainLyrics, response.syncedLyrics);
+      return response.syncedLyrics || response.plainLyrics;
     } else {
       setLyrics(track.uri, response.plainLyrics);
+      return response.plainLyrics;
     }
+  } else {
+    return null;
   }
 };
