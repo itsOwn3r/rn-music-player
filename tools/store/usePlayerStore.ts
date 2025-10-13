@@ -84,6 +84,8 @@ type PlayerStore = {
   playPauseMusic: () => Promise<void>;
   setIsPlaying: (val: boolean) => void;
   handleChangeSongPosition: (pos: number) => void;
+  handlebackwardPosition: () => void;
+  handleForwardPosition: () => void;
   toggleShuffle: () => void;
   toggleRepeat: () => void;
   toggleShowLyrics: () => void;
@@ -557,6 +559,22 @@ export const usePlayerStore = create<PlayerStore>()(
         if (!engine) return;
         engine.seekTo(pos);
         set({ position: pos });
+      },
+
+      handlebackwardPosition: () => {
+        const { engine, position } = get();
+        if (!engine) return;
+        const newPosition = position - 5 > 0 ? position - 5 : 0;
+        engine.seekTo(newPosition);
+        set({ position: newPosition });
+      },
+
+      handleForwardPosition: () => {
+        const { engine, position, duration } = get();
+        if (!engine) return;
+        const newPosition = position + 5 < duration ? position + 5 : position;
+        engine.seekTo(newPosition);
+        set({ position: newPosition });
       },
       toggleShuffle: () =>
         set((state) => {

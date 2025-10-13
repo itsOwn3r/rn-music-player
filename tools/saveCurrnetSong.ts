@@ -17,6 +17,8 @@ const saveSongMetadata = async (song: Song) => {
         year: song.year,
         album: song.album || "",
         duration: song.duration,
+        lyrics: song.lyrics,
+        syncedLyrics: song.syncedLyrics,
         lastSong: {
           id: lastSong.id,
           index: lastSong.index,
@@ -27,6 +29,8 @@ const saveSongMetadata = async (song: Song) => {
           year: lastSong.year,
           album: lastSong.album || "",
           duration: lastSong.duration,
+          lyrics: lastSong.lyrics,
+          syncedLyrics: lastSong.syncedLyrics,
         },
       };
       await AsyncStorage.setItem("song", JSON.stringify(songObject));
@@ -41,6 +45,8 @@ const saveSongMetadata = async (song: Song) => {
         year: song.year,
         album: song.album || "",
         duration: song.duration,
+        lyrics: song.lyrics,
+        syncedLyrics: song.syncedLyrics,
         lastSong: null,
       };
       await AsyncStorage.setItem("song", JSON.stringify(songObject));
