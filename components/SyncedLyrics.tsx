@@ -34,7 +34,7 @@ export default function SyncedLyrics({ lrc }: { lrc: string }) {
   }, [activeIndex, lyrics, position, synced]);
 
   useDerivedValue(() => {
-    if (synced && !manualScroll && activeIndex > 0 && position > 0) {
+    if (synced && !manualScroll && position > 0) {
       scrollTo(flatListRef, 0, activeIndex * 32, true);
     }
   }, [activeIndex, manualScroll, position, synced]);
@@ -59,7 +59,7 @@ export default function SyncedLyrics({ lrc }: { lrc: string }) {
       renderItem={({ item, index }) => (
         <Text
           onPress={() => synced && handleChangeSongPosition(item.time)}
-          className={`text-center text-lg ${
+          className={`text-center text-lg flex  justify-center items-center mx-4 ${
             synced && index === activeIndex
               ? "text-white font-bold"
               : "text-gray-400"

@@ -8,7 +8,6 @@ export default function PlayerBinder() {
 
   const bindEngine = usePlayerStore((s) => s.bindEngine);
   const setProgress = usePlayerStore((s) => s.setProgress);
-  const files = usePlayerStore((s) => s.files);
   const currentSongIndex = usePlayerStore((s) => s.currentSongIndex);
   const shuffle = usePlayerStore((s) => s.shuffle);
   const repeat = usePlayerStore((s) => s.repeat);
@@ -139,7 +138,6 @@ export default function PlayerBinder() {
     setProgress,
     repeat,
     shuffle,
-    files,
     currentSongIndex,
     playSong,
     engine,

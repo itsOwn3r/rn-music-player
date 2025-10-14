@@ -41,7 +41,6 @@ export default function Layout() {
               animationDuration: 100,
               headerShown: false,
               animation: "slide_from_bottom",
-              navigationBarHidden: true,
             }}
           />
           <Stack.Screen

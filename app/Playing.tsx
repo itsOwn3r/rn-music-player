@@ -7,7 +7,6 @@ import {
   SkipToLastButton,
   SkipToNextButton,
 } from "@/components/PlayerControls";
-import PlayerFooter from "@/components/PlayerFooter";
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
 import SyncedLyrics from "@/components/SyncedLyrics";
@@ -45,9 +44,19 @@ export default function PlayingScreen() {
 
   const setLyrics = usePlayerStore((s) => s.setLyrics);
 
+  const toggleShowLyrics = usePlayerStore((s) => s.toggleShowLyrics);
+
   const showLyrics = usePlayerStore((s) => s.showLyrics);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
+
+  const addToPlaylist = () => {
+    router.push({
+      pathname: "/(modals)/addToPlaylist",
+      params: { trackUri: currentSong?.uri },
+    });
+  };
+
   const isFavorite = usePlayerStore((s) =>
     s.isFavorite(currentSong?.uri || "")
   );
@@ -123,20 +132,28 @@ export default function PlayingScreen() {
             <View
               className={` relative items-start rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
             >
-              <Image
-                source={
-                  currentSong?.coverArt
-                    ? { uri: currentSong.coverArt }
-                    : coverImage
-                }
-                alt="Cover Image"
-                className="rounded-lg shadow-lg shadow-black size-full"
-                width={250}
-                height={250}
-              />
+              <TouchableOpacity
+                onPress={toggleShowLyrics}
+                className="size-full"
+              >
+                <Image
+                  source={
+                    currentSong?.coverArt
+                      ? { uri: currentSong.coverArt }
+                      : coverImage
+                  }
+                  alt="Cover Image"
+                  className="rounded-lg shadow-lg shadow-black size-full"
+                  width={250}
+                  height={250}
+                />
+              </TouchableOpacity>
               {showLyrics &&
                 (currentSong?.lyrics || lyricsPlaceholder ? (
-                  <View className="absolute inset-0 z-50 bg-black/70 flex items-center justify-center">
+                  <TouchableOpacity
+                    className="absolute inset-0 z-50 bg-black/70"
+                    onPress={toggleShowLyrics}
+                  >
                     <SyncedLyrics
                       lrc={
                         lyricsPlaceholder
@@ -146,7 +163,7 @@ export default function PlayingScreen() {
                             : currentSong?.lyrics || ""
                       }
                     />
-                  </View>
+                  </TouchableOpacity>
                 ) : (
                   <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center">
                     <Text className="text-white text-2xl">No Lyrics :(</Text>
@@ -163,25 +180,44 @@ export default function PlayingScreen() {
             </View>
 
             {/* Song Info */}
-            <View className="mt-10 mb-1 w-full flex justify-center relative items-center">
-              {currentSong ? (
-                <TextTicker
-                  duration={11000}
-                  loop
-                  bounce
-                  scroll
-                  repeatSpacer={50}
-                  className="text-2xl font-bold px-3 text-white"
-                  marqueeDelay={2000}
-                >
-                  {currentSong.title}
-                </TextTicker>
-              ) : (
-                "Song Title"
-              )}
-              <Text className="text-center text-base text-gray-400 font-semibold mb-1">
-                {currentSong ? currentSong.artist : "Artist Name"}
-              </Text>
+            <View className="mb-4 mt-8 flex flex-row justify-center items-center z-50 w-full relative bg--500">
+              <TouchableOpacity
+                onPress={() => toggleFavorite(currentSong?.uri || "")}
+                className="text-white size-12 items-center flex justify-center absolute left-4"
+              >
+                <FontAwesome
+                  color="red"
+                  name={isFavorite ? "heart" : "heart-o"}
+                  size={24}
+                />
+              </TouchableOpacity>
+              <View className="w-full flex justify-center relative items-center">
+                {currentSong ? (
+                  <TextTicker
+                    duration={11000}
+                    loop
+                    bounce
+                    scroll
+                    repeatSpacer={50}
+                    className="text-2xl font-bold px-3 text-white"
+                    marqueeDelay={2000}
+                  >
+                    {currentSong.title}
+                  </TextTicker>
+                ) : (
+                  "Song Title"
+                )}
+                <Text className="text-center text-base text-gray-400 font-semibold mb-1">
+                  {currentSong ? currentSong.artist : "Artist Name"}
+                </Text>
+              </View>
+              <TouchableOpacity
+                onPress={addToPlaylist}
+                activeOpacity={0.8}
+                className="size-12 rounded-full justify-center items-center absolute right-4"
+              >
+                <MaterialIcons name="playlist-add" size={30} color="#fff" />
+              </TouchableOpacity>
             </View>
 
             <View className="flex justify-between w-full flex-row px-5">
@@ -191,15 +227,19 @@ export default function PlayingScreen() {
               >
                 <FontAwesome name="list-ol" color="#b8b8b8" size={24} />
               </TouchableOpacity>
+
               <TouchableOpacity
-                onPress={() => toggleFavorite(currentSong?.uri || "")}
+                onPress={() => {}}
                 className="text-white size-12 items-center flex justify-center"
               >
-                <FontAwesome
-                  color="red"
-                  name={isFavorite ? "heart" : "heart-o"}
-                  size={24}
-                />
+                <MaterialIcons color="white" name="timeline" size={24} />
+              </TouchableOpacity>
+
+              <TouchableOpacity
+                onPress={() => {}}
+                className="text-white size-12 items-center flex justify-center"
+              >
+                <FontAwesome color="white" name="download" size={24} />
               </TouchableOpacity>
             </View>
 
@@ -210,7 +250,7 @@ export default function PlayingScreen() {
           {/* Controls */}
           <View className="w-full flex flex-row justify-evenly items-center mt-4">
             <View className="flex-row items-center justify-center">
-              <ShuffleHandler iconSize={30} />
+              <ShuffleHandler iconSize={21} />
             </View>
 
             <View className="flex-row items-center justify-center">
@@ -227,13 +267,13 @@ export default function PlayingScreen() {
 
             <View className="flex-row items-center justify-center">
               <RepeatHandler
-                iconSize={30}
+                iconSize={21}
                 classNames="flex flex-row justify-center items-center"
               />
             </View>
           </View>
           <PlayerVolumeBar />
-          <PlayerFooter currentSong={currentSong} />
+          {/* <PlayerFooter currentSong={currentSong} /> */}
         </Animated.View>
       </GestureDetector>
     </SafeAreaView>
