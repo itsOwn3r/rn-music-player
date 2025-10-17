@@ -65,9 +65,7 @@ export default function PlayingScreen() {
     await downloadFile(id, remoteUrl);
   };
 
-  const isFavorite = usePlayerStore((s) =>
-    s.isFavorite(currentSong?.uri || "")
-  );
+  const isFavorite = usePlayerStore((s) => s.isFavorite(currentSong?.id || ""));
 
   const handleFetchingLyrics = async () => {
     const lyrics = await fetchLyrics(currentSong, setLyrics);
@@ -190,7 +188,7 @@ export default function PlayingScreen() {
             {/* Song Info */}
             <View className="mb-4 mt-8 flex flex-row justify-center items-center z-50 w-full relative bg--500">
               <TouchableOpacity
-                onPress={() => toggleFavorite(currentSong?.uri || "")}
+                onPress={() => toggleFavorite(currentSong?.id || "")}
                 className="text-white size-12 items-center flex justify-center absolute left-4"
               >
                 <FontAwesome

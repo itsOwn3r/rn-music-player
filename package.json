@@ -63,7 +63,8 @@
     "react-native-worklets": "^0.5.1",
     "tailwindcss": "^3.4.17",
     "ts-pattern": "^5.8.0",
-    "zustand": "^5.0.8"
+    "zustand": "^5.0.8",
+    "expo-sqlite": "~15.2.14"
   },
   "devDependencies": {
     "@babel/core": "^7.25.2",

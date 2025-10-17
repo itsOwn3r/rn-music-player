@@ -10,7 +10,9 @@ const FavoritesScreen = () => {
 
   const favorites = usePlayerStore((s) => s.favorites);
 
-  const favoriteSongs = files.filter((song) => favorites.includes(song.uri));
+  const favoriteIds = favorites.map((item) => item.id);
+
+  const favoriteSongs = files.filter((song) => favoriteIds.includes(song.id));
 
   const tabBarHeight = useBottomTabBarHeight();
 

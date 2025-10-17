@@ -1,4 +1,6 @@
+import { getAllSongs } from "@/tools/db";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { syncFolder } from "@/tools/syncFolder";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useEffect, useRef } from "react";
 
@@ -27,8 +29,22 @@ export default function PlayerBinder() {
   const pickFolder = usePlayerStore((s) => s.pickFolder);
   //const isLoading = usePlayerStore((s) => s.isLoading);
 
+  // useEffect(() => {
+  //   pickFolder();
+  // }, []);
+
   useEffect(() => {
-    pickFolder();
+    (async () => {
+      const songs = await getAllSongs();
+
+      if (songs.length > 0) {
+        console.log(`🎵 Loaded from SQLite: ${songs.length} songs`);
+        usePlayerStore.setState({ files: songs });
+        await syncFolder(); // optional: refresh silently
+      } else {
+        await pickFolder(); // do initial scan
+      }
+    })();
   }, []);
 
   const frameRef = useRef<number | null>(null);

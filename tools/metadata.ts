@@ -41,7 +41,8 @@ export async function readTagsForContentUri(
     }
 
     const songMetadata: Song = {
-      title: common.title ?? filename.replace(/\.[a-z0-9]+$/i, ""),
+      title:
+        common.title ?? decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
       artist: common.artist ?? null,
       album: common.album ?? null,
       year: common.year ? String(common.year) : null,
@@ -65,7 +66,7 @@ export async function readTagsForContentUri(
     const filename = uri.split("/").pop() || "Unknown";
 
     return {
-      title: filename.replace(/\.[a-z0-9]+$/i, ""),
+      title: decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
       artist: null,
       album: null,
       coverArt: null,

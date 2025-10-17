@@ -11,7 +11,9 @@
     "ios": {
       "supportsTablet": true,
       "infoPlist": {
-        "UIBackgroundModes": ["audio"]
+        "UIBackgroundModes": [
+          "audio"
+        ]
       }
     },
     "android": {
@@ -36,15 +38,16 @@
       "output": "static",
       "favicon": "./assets/images/favicon.png"
     },
-    "plugins": [  [
-      "expo-navigation-bar",
-      {
-        "position": "absolute",
-        "visibility": "visible",
-        "behavior": "inset-swipe",
-        "backgroundColor": "#000000"
-      }
-    ],
+    "plugins": [
+      [
+        "expo-navigation-bar",
+        {
+          "position": "absolute",
+          "visibility": "visible",
+          "behavior": "inset-swipe",
+          "backgroundColor": "#000000"
+        }
+      ],
       "expo-router",
       [
         "expo-splash-screen",
@@ -56,7 +59,8 @@
         }
       ],
       "expo-audio",
-      "react-native-edge-to-edge"
+      "react-native-edge-to-edge",
+      "expo-sqlite"
     ],
     "experiments": {
       "typedRoutes": true

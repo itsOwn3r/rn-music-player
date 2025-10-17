@@ -1,5 +1,12 @@
 import { songs as staticSongs } from "@/assets/data/playlists";
 import {
+  addFavorite,
+  addSong,
+  getAllSongs,
+  getFavoriteSongs,
+  removeFavorite,
+} from "@/tools/db";
+import {
   displayNameFromSafUri,
   fileNameFromSafUri,
 } from "@/tools/fileNameFromSAF";
@@ -55,6 +62,11 @@ type PlayerStore = {
   showLyrics: boolean;
 
   repeat: "off" | "all" | "one";
+  // Actions
+  loadLibrary: () => Promise<void>;
+  loadFavorites: () => Promise<void>;
+  toggleFavorite: (songId: string) => Promise<void>;
+  addFile: (song: Song) => Promise<void>;
 
   // engine binding + progress
   bindEngine: (engine: AudioEngine) => void;
@@ -92,9 +104,8 @@ type PlayerStore = {
   toggleShowLyrics: () => void;
   volume: number;
   setVolume: (val: number) => void;
-  favorites: string[]; // store song IDs
-  toggleFavorite: (uri: string) => void;
-  isFavorite: (uri: string) => boolean;
+  favorites: Song[]; // store song IDs
+  isFavorite: (songId: string) => boolean;
   queue: Song[]; // songs queued up
   queueContext?: "playlist" | "search" | "library" | "custom" | null;
   addToQueue: (songs: Song[]) => void;
@@ -108,7 +119,6 @@ type PlayerStore = {
   setAllFiles: (files: Song[]) => void;
   setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) => void;
 
-  addFile: (file: Song) => void;
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
 };
@@ -126,7 +136,7 @@ export const usePlayerStore = create<PlayerStore>()(
       queueContext: null,
       position: 0,
       duration: 1,
-      isLoading: true,
+      isLoading: false,
       shuffle: false,
       showLyrics: false,
       repeat: "off",
@@ -148,6 +158,16 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ files: mergedFiles });
       },
       bindEngine: (engine) => set({ engine }),
+      loadLibrary: async () => {
+        const songs = await getAllSongs();
+        set({ files: songs });
+      },
+
+      // 🔄 Load favorites
+      loadFavorites: async () => {
+        const favs = await getFavoriteSongs();
+        set({ favorites: favs });
+      },
       setFiles: (files) => {
         const prevFiles = get().files;
 
@@ -171,7 +191,11 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ files: mergedFiles });
       },
 
-      addFile: (file: Song) => set((s) => ({ files: [...s.files, file] })),
+      addFile: async (song: Song) => {
+        await addSong(song);
+        const songs = await getAllSongs();
+        set({ files: songs });
+      },
 
       updateFileLocalUri: (id: string | null | undefined, localUri: any) =>
         set((s) => ({
@@ -238,12 +262,12 @@ export const usePlayerStore = create<PlayerStore>()(
 
             // Otherwise create a lightweight placeholder
             return {
-              id: uri,
+              id: uuid.v4().toString().slice(-8),
               uri,
               filename: fileNameFromSafUri(uri) ?? filename,
               title:
                 displayNameFromSafUri(uri) ??
-                filename.replace(/\.[a-z0-9]+$/i, ""),
+                decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
               artist: null,
               album: null,
               coverArt: null,
@@ -281,7 +305,13 @@ export const usePlayerStore = create<PlayerStore>()(
             };
           });
 
-          set({ files: mergedList, isLoading: false });
+          for (const song of mergedList) {
+            await addSong(song);
+          }
+
+          // ✅ Update Zustand
+          const songs = await getAllSongs();
+          usePlayerStore.setState({ files: songs });
 
           const lastSong = await AsyncStorage.getItem("song");
           if (lastSong) {
@@ -385,6 +415,8 @@ export const usePlayerStore = create<PlayerStore>()(
           runPool(rest, 2);
         } catch (err) {
           console.error("pickFolder error:", err);
+          set({ isLoading: false });
+        } finally {
           set({ isLoading: false });
         }
       },
@@ -620,17 +652,19 @@ export const usePlayerStore = create<PlayerStore>()(
           return { showLyrics: newState };
         }),
       favorites: [],
-      toggleFavorite: (uri) =>
-        set((s) => {
-          const exists = s.favorites.includes(uri);
-          return {
-            favorites: exists
-              ? s.favorites.filter((id) => id !== uri)
-              : [...s.favorites, uri],
-          };
-        }),
-      isFavorite: (uri) => {
-        return get().favorites.includes(uri);
+      toggleFavorite: async (songId) => {
+        const isFav = get().favorites.some((f) => f.id === songId);
+        if (isFav) {
+          await removeFavorite(songId);
+        } else {
+          await addFavorite(songId);
+        }
+        const updatedFavs = await getFavoriteSongs();
+        set({ favorites: updatedFavs });
+      },
+      isFavorite: (songId) => {
+        const isFav = get().favorites.some((f) => f.id === songId);
+        return isFav;
       },
 
       addToQueue: (songs) =>
@@ -827,9 +861,7 @@ export const usePlayerStore = create<PlayerStore>()(
         repeat: s.repeat,
         shuffle: s.shuffle,
         showLyrics: s.showLyrics,
-        favorites: s.favorites,
         volume: s.volume,
-        files: s.files,
         position: s.position,
         duration: s.duration,
       }),
