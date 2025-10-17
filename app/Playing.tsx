@@ -47,6 +47,7 @@ export default function PlayingScreen() {
   const toggleShowLyrics = usePlayerStore((s) => s.toggleShowLyrics);
 
   const showLyrics = usePlayerStore((s) => s.showLyrics);
+  const downloadFile = usePlayerStore((s) => s.downloadFile);
 
   const currentSong = usePlayerStore((s) => s.currentSong);
 
@@ -55,6 +56,13 @@ export default function PlayingScreen() {
       pathname: "/(modals)/addToPlaylist",
       params: { trackUri: currentSong?.uri },
     });
+  };
+
+  const handleDownload = async (id: string, remoteUrl: string) => {
+    if (!id || !remoteUrl) {
+      console.warn("Not enought details to download the song!");
+    }
+    await downloadFile(id, remoteUrl);
   };
 
   const isFavorite = usePlayerStore((s) =>
@@ -236,7 +244,9 @@ export default function PlayingScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => {}}
+                onPress={() =>
+                  handleDownload(currentSong?.id || "", currentSong?.uri || "")
+                }
                 className="text-white size-12 items-center flex justify-center"
               >
                 <FontAwesome color="white" name="download" size={24} />

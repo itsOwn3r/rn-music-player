@@ -14,7 +14,6 @@ import Animated, {
   withSpring,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
-
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function QueueScreen() {

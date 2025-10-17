@@ -1,6 +1,7 @@
 import type { Song } from "@/types/types";
 import * as FileSystem from "expo-file-system";
 import { parseBlob } from "music-metadata-browser";
+import uuid from "react-native-uuid";
 import { copyContentToCache, getFilenameFromAnyUri } from "./fileUtils";
 import saveCoverArtIfNeeded from "./saveCoverArtIfNeeded";
 import { getCachedMetadata, setCachedMetadata } from "./setAndGetCache";
@@ -45,7 +46,7 @@ export async function readTagsForContentUri(
       album: common.album ?? null,
       year: common.year ? String(common.year) : null,
       comment: common.comment?.join(" ") || null,
-      id: common.notes?.[0] ?? null,
+      id: uuid.v4().toString().slice(-8),
       duration: format.duration ?? 0,
       coverArt: coverPath, // ✅ just file path
       filename,
@@ -72,7 +73,7 @@ export async function readTagsForContentUri(
       comment: null,
       duration: 0,
       date: Date.now(),
-      id: null,
+      id: uuid.v4().toString().slice(-8),
       filename,
       index: -1,
       uri,

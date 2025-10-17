@@ -20,6 +20,7 @@ import { Platform } from "react-native";
 import uuid from "react-native-uuid";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
+import { downloadSongWithSAF } from "../downloadManager";
 
 if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
@@ -96,7 +97,6 @@ type PlayerStore = {
   isFavorite: (uri: string) => boolean;
   queue: Song[]; // songs queued up
   queueContext?: "playlist" | "search" | "library" | "custom" | null;
-  playbackPosition?: number;
   addToQueue: (songs: Song[]) => void;
   removeFromQueue: (songId: string) => void;
   clearQueue: () => void;
@@ -105,7 +105,12 @@ type PlayerStore = {
     method?: "button" | "update"
   ) => Promise<void>;
   setFiles: (files: Song[]) => void;
+  setAllFiles: (files: Song[]) => void;
   setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) => void;
+
+  addFile: (file: Song) => void;
+  updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
+  downloadFile: (id: string, remoteUri: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -119,7 +124,6 @@ export const usePlayerStore = create<PlayerStore>()(
       isPlaying: false,
       queue: [],
       queueContext: null,
-      playbackPosition: 0,
       position: 0,
       duration: 1,
       isLoading: true,
@@ -127,7 +131,22 @@ export const usePlayerStore = create<PlayerStore>()(
       showLyrics: false,
       repeat: "off",
       volume: 1,
+      setAllFiles: (files) => {
+        // console.log(files);
+        const mergedFiles = files.map((f) => {
+          const id = uuid.v4().toString().slice(-8);
+          console.log("ID: ", id);
 
+          return {
+            ...f,
+            id,
+          };
+        });
+
+        // console.log("Merggged ", mergedFiles);
+
+        set({ files: mergedFiles });
+      },
       bindEngine: (engine) => set({ engine }),
       setFiles: (files) => {
         const prevFiles = get().files;
@@ -150,6 +169,28 @@ export const usePlayerStore = create<PlayerStore>()(
         });
 
         set({ files: mergedFiles });
+      },
+
+      addFile: (file: Song) => set((s) => ({ files: [...s.files, file] })),
+
+      updateFileLocalUri: (id: string | null | undefined, localUri: any) =>
+        set((s) => ({
+          files: s.files.map((f) => (f.id === id ? { ...f, localUri } : f)),
+        })),
+      downloadFile: async (id: string, remoteUri) => {
+        const file = get().files.find((f) => f.id === id);
+        if (!file) return;
+
+        const safeTitle =
+          file.title?.replace(/[\\/:*?"<>|]/g, "_") || `song_${id}`;
+        const localUri = await downloadSongWithSAF(
+          remoteUri,
+          `${safeTitle}.mp3`
+        );
+
+        if (localUri) {
+          get().updateFileLocalUri(id, localUri);
+        }
       },
 
       setProgress: (position, duration) =>
@@ -352,7 +393,8 @@ export const usePlayerStore = create<PlayerStore>()(
         if (!engine) return;
 
         await saveSongMetadata(file);
-        await engine.replace({ uri: file.uri });
+        const uri = file.localUri ?? file.uri;
+        await engine.replace({ uri: uri });
         await engine.seekTo(0);
         await engine.play();
 
@@ -782,7 +824,6 @@ export const usePlayerStore = create<PlayerStore>()(
         currentSongIndex: s.currentSongIndex,
         queue: s.queue,
         queueContext: s.queueContext,
-        playbackPosition: s.playbackPosition,
         repeat: s.repeat,
         shuffle: s.shuffle,
         showLyrics: s.showLyrics,
