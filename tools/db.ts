@@ -18,7 +18,7 @@ export async function initDB() {
       duration REAL,
       coverArt TEXT,
       size INTEGER,
-      dateAdded INTEGER,
+      date INTEGER,
       year INTEGER,
       lyrics TEXT,
       syncedLyrics TEXT
@@ -26,7 +26,7 @@ export async function initDB() {
 
     CREATE TABLE IF NOT EXISTS favorites (
       songId TEXT PRIMARY KEY REFERENCES songs(id) ON DELETE CASCADE,
-      dateAdded INTEGER
+      date INTEGER
     );
   `);
 }
@@ -34,7 +34,7 @@ export async function initDB() {
 export async function addSong(song: Song) {
   await db.runAsync(
     `INSERT OR REPLACE INTO songs
-      (id, uri, filename, title, artist, album, duration, coverArt, size, dateAdded, year, lyrics, syncedLyrics)
+      (id, uri, filename, title, artist, album, duration, coverArt, size, date, year, lyrics, syncedLyrics)
      VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), ?, ?, ?)`,
 
     [
@@ -55,7 +55,7 @@ export async function addSong(song: Song) {
 }
 
 export async function getAllSongs(): Promise<Song[]> {
-  const rows = await db.getAllAsync(`SELECT * FROM songs ORDER BY title ASC`);
+  const rows = await db.getAllAsync(`SELECT * FROM songs ORDER BY date DESC`);
   return rows as Song[];
 }
 
@@ -70,7 +70,7 @@ export async function clearSongs() {
 // Favorites handling
 export async function addFavorite(songId: string) {
   await db.runAsync(
-    "INSERT OR REPLACE INTO favorites (songId, dateAdded) VALUES (?, strftime('%s','now'))",
+    "INSERT OR REPLACE INTO favorites (songId, date) VALUES (?, strftime('%s','now'))",
     [songId]
   );
 }
@@ -83,7 +83,7 @@ export async function getFavoriteSongs(): Promise<Song[]> {
   const rows = await db.getAllAsync(`
     SELECT songs.* FROM songs
     JOIN favorites ON songs.id = favorites.songId
-    ORDER BY favorites.dateAdded DESC
+    ORDER BY favorites.date DESC
   `);
   return rows as Song[];
 }

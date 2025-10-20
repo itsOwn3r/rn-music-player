@@ -1,8 +1,10 @@
 import { getAllSongs } from "@/tools/db";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { syncFolder } from "@/tools/syncFolder";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useEffect, useRef } from "react";
+import { AppState } from "react-native";
 
 export default function PlayerBinder() {
   const engine = useAudioPlayer();
@@ -34,20 +36,48 @@ export default function PlayerBinder() {
   // }, []);
 
   useEffect(() => {
-    (async () => {
-      const songs = await getAllSongs();
+    let appStateSubscription: any;
 
-      if (songs.length > 0) {
-        console.log(`🎵 Loaded from SQLite: ${songs.length} songs`);
-        await syncFolder(); // optional: refresh silently
-        // const baseSongs = await getAllSongs();
-        // usePlayerStore.setState({ files: baseSongs });
-        // await clearSongs();
-        // console.log("Deleted");
-      } else {
-        await pickFolder(); // do initial scan
+    const initialize = async () => {
+      try {
+        // Load existing songs from SQLite
+        const songs = await getAllSongs();
+        const folderUri = await AsyncStorage.getItem("musicDirectoryUri");
+
+        if (folderUri) {
+          // ✅ Folder exists: auto-sync
+          console.log("🎵 Folder found, auto-syncing...");
+          await syncFolder();
+        } else if (songs.length === 0) {
+          // ✅ First-time setup: pick a folder
+          console.log("📂 No folder selected, picking folder...");
+          await pickFolder();
+        } else {
+          console.log(`🎵 Loaded ${songs.length} songs from SQLite`);
+          // Optional: silently sync existing folder if needed
+          await syncFolder();
+        }
+
+        // ✅ Auto-sync on app resume
+        appStateSubscription = AppState.addEventListener(
+          "change",
+          async (state) => {
+            if (state === "active" && folderUri) {
+              console.log("🔄 App resumed, syncing folder...");
+              await syncFolder();
+            }
+          }
+        );
+      } catch (err) {
+        console.error("❌ Error initializing player:", err);
       }
-    })();
+    };
+
+    initialize();
+
+    return () => {
+      appStateSubscription?.remove?.();
+    };
   }, []);
 
   const frameRef = useRef<number | null>(null);

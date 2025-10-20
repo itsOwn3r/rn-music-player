@@ -7,12 +7,6 @@ import { addSong, getAllSongs, removeSong } from "./db";
 import { displayNameFromSafUri, fileNameFromSafUri } from "./fileNameFromSAF";
 import { ensureCacheDir, looksLikeAudio } from "./fileUtils";
 import { readTagsForContentUri } from "./metadata";
-import {
-  getCachedMetadata,
-  getCachedMetadataLoose,
-  setCachedMetadata,
-  setCachedMetadataLoose,
-} from "./setAndGetCache";
 import { usePlayerStore } from "./store/usePlayerStore";
 
 export async function syncFolder() {
@@ -92,7 +86,7 @@ export async function syncFolder() {
         coverArt: null,
         index,
         comment: null,
-        date: null,
+        date: new Date().getTime(),
         duration: 0,
         year: null,
         lyrics: null,
@@ -122,45 +116,8 @@ export async function syncFolder() {
       if (fetched.has(song.uri) || inflight.has(song.uri)) return;
       inflight.add(song.uri);
       try {
-        const info = await FileSystem.getInfoAsync(song.uri as any);
-        const modificationTime =
-          info.exists && "modificationTime" in info
-            ? info.modificationTime
-            : undefined;
-
-        const cached =
-          (modificationTime &&
-            (await getCachedMetadata(song.uri, modificationTime))) ||
-          (await getCachedMetadataLoose(song.uri));
-
-        if (cached) {
-          usePlayerStore.setState((prev) => ({
-            files: prev.files.map((f) =>
-              f.uri === song.uri
-                ? {
-                    ...f,
-                    ...cached,
-                    index: idx,
-                    lyrics: f.lyrics ?? cached.lyrics ?? null,
-                    syncedLyrics: f.syncedLyrics ?? cached.syncedLyrics ?? null,
-                  }
-                : f
-            ),
-          }));
-          fetched.add(song.uri);
-          await addSong(cached);
-          return;
-        }
-
-        // No cache, read metadata
         const tags = await readTagsForContentUri(song.uri, cacheDir);
         const merged: Song = { ...song, ...tags, index: idx };
-
-        if (modificationTime) {
-          await setCachedMetadata(song.uri, modificationTime, merged);
-        } else {
-          await setCachedMetadataLoose(song.uri, merged);
-        }
 
         usePlayerStore.setState((prev) => ({
           files: prev.files.map((f) =>
