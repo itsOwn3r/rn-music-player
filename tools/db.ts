@@ -54,6 +54,18 @@ export async function addSong(song: Song) {
   );
 }
 
+export async function getSong(songId: string): Promise<Song | undefined> {
+  if (!songId) {
+    return undefined;
+  }
+  const row = await db.getFirstAsync(
+    `SELECT * FROM songs WHERE id = ? ORDER BY date DESC`,
+    [songId]
+  );
+
+  return row as Song | undefined;
+}
+
 export async function getAllSongs(): Promise<Song[]> {
   const rows = await db.getAllAsync(`SELECT * FROM songs ORDER BY date DESC`);
   return rows as Song[];

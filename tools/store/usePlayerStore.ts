@@ -138,7 +138,7 @@ export const usePlayerStore = create<PlayerStore>()(
       duration: 1,
       isLoading: false,
       shuffle: false,
-      showLyrics: false,
+      showLyrics: true,
       repeat: "off",
       volume: 1,
       setAllFiles: (files) => {

@@ -10,6 +10,7 @@ import { readTagsForContentUri } from "./metadata";
 import { usePlayerStore } from "./store/usePlayerStore";
 
 export async function syncFolder() {
+  usePlayerStore.setState({ isLoading: true });
   try {
     let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
     if (!directoryUri) {
@@ -109,6 +110,20 @@ export async function syncFolder() {
       };
     });
 
+    const lastSong = await AsyncStorage.getItem("song");
+    if (lastSong) {
+      const lastSongObject: Song = JSON.parse(lastSong);
+      usePlayerStore.setState({
+        currentSongIndex: lastSongObject.index,
+        currentSong: lastSongObject,
+      });
+    } else {
+      usePlayerStore.setState({
+        currentSongIndex: 0,
+        currentSong: sortedList[0],
+      });
+    }
+
     const inflight = new Set<string>();
     const fetched = new Set<string>();
 
@@ -164,5 +179,6 @@ export async function syncFolder() {
   } finally {
     const baseSongs = await getAllSongs();
     usePlayerStore.setState({ files: baseSongs });
+    usePlayerStore.setState({ isLoading: false });
   }
 }

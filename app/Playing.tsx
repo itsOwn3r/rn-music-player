@@ -10,11 +10,12 @@ import {
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
 import SyncedLyrics from "@/components/SyncedLyrics";
+import { getSong } from "@/tools/db";
 import { fetchLyrics } from "@/tools/fetchLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
-import React, { useState } from "react";
+import React from "react";
 import {
   Dimensions,
   Image,
@@ -36,7 +37,6 @@ import TextTicker from "react-native-text-ticker";
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 export default function PlayingScreen() {
-  const [lyricsPlaceholder, setLyricsPlaceholder] = useState("");
   const router = useRouter();
   const translateY = useSharedValue(0);
 
@@ -70,7 +70,21 @@ export default function PlayingScreen() {
   const handleFetchingLyrics = async () => {
     const lyrics = await fetchLyrics(currentSong, setLyrics);
     // router.reload();
-    setLyricsPlaceholder(lyrics);
+    const updated = await getSong(currentSong?.id || "");
+    if (!updated) return;
+
+    // Update the files array and the currentSong reference in the store in one atomic update
+    usePlayerStore.setState((prev: any) => {
+      const files = prev.files ?? [];
+      const newFiles = files.map((f: any) =>
+        f.id === updated.id ? updated : f
+      );
+      return {
+        files: newFiles,
+        currentSong:
+          prev.currentSong?.id === updated.id ? updated : prev.currentSong,
+      };
+    });
   };
 
   // Pan gesture
@@ -155,18 +169,16 @@ export default function PlayingScreen() {
                 />
               </TouchableOpacity>
               {showLyrics &&
-                (currentSong?.lyrics || lyricsPlaceholder ? (
+                (currentSong?.lyrics ? (
                   <TouchableOpacity
                     className="absolute inset-0 z-50 bg-black/70"
                     onPress={toggleShowLyrics}
                   >
                     <SyncedLyrics
                       lrc={
-                        lyricsPlaceholder
-                          ? lyricsPlaceholder
-                          : currentSong?.syncedLyrics
-                            ? currentSong.syncedLyrics
-                            : currentSong?.lyrics || ""
+                        currentSong?.syncedLyrics
+                          ? currentSong.syncedLyrics
+                          : currentSong?.lyrics || ""
                       }
                     />
                   </TouchableOpacity>
@@ -197,7 +209,7 @@ export default function PlayingScreen() {
                   size={24}
                 />
               </TouchableOpacity>
-              <View className="w-full flex justify-center relative items-center">
+              <View className="flex justify-center relative items-center px-[15%]">
                 {currentSong ? (
                   <TextTicker
                     duration={11000}
