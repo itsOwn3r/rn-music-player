@@ -87,3 +87,14 @@ export async function getFavoriteSongs(): Promise<Song[]> {
   `);
   return rows as Song[];
 }
+
+export async function addLyrics(
+  songId: string,
+  lyrics: string,
+  syncedLyrics: string
+) {
+  await db.runAsync(
+    "UPDATE songs SET lyrics = ?, syncedLyrics = ? WHERE id = ?",
+    [lyrics, syncedLyrics, songId]
+  );
+}
