@@ -3,11 +3,17 @@ import { Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import uuid from "react-native-uuid";
-import { addSong, getAllSongs } from "./db";
+import { addSong, getAllSongs, removeSong } from "./db";
+import { displayNameFromSafUri, fileNameFromSafUri } from "./fileNameFromSAF";
+import { ensureCacheDir, looksLikeAudio } from "./fileUtils";
+import { readTagsForContentUri } from "./metadata";
+import {
+  getCachedMetadata,
+  getCachedMetadataLoose,
+  setCachedMetadata,
+  setCachedMetadataLoose,
+} from "./setAndGetCache";
 import { usePlayerStore } from "./store/usePlayerStore";
-
-const looksLikeAudio = (uri: string) =>
-  uri.endsWith(".mp3") || uri.endsWith(".m4a") || uri.endsWith(".wav");
 
 export async function syncFolder() {
   try {
@@ -23,45 +29,183 @@ export async function syncFolder() {
 
     const entries =
       await FileSystem.StorageAccessFramework.readDirectoryAsync(directoryUri);
+    const audioUris = entries.filter(looksLikeAudio);
+    if (audioUris.length === 0) {
+      console.log("⚠️ No audio files found in folder");
+      return;
+    }
 
-    const existingSongs = await getAllSongs();
-    const existingUris = new Set(existingSongs.map((s) => s.uri));
+    const existingFiles = await getAllSongs();
+    const existingUris = new Set(existingFiles.map((s) => s.uri));
 
-    const newAudioUris = entries.filter(looksLikeAudio);
-    const newSongs: Song[] = [];
+    // 🗩 NEW: detect removed songs
+    const removedSongs = existingFiles.filter(
+      (s) => !audioUris.includes(s.uri)
+    );
+    if (removedSongs.length > 0) {
+      console.log(
+        `🗑️ Found ${removedSongs.length} removed songs — deleting...`
+      );
+      for (const song of removedSongs) {
+        try {
+          if (!song.id) {
+            console.warn("Skipping delete, missing id for:", song);
+          } else {
+            await removeSong(song.id);
+            console.log(`🗑️ Deleted: ${song.title ?? song.filename}`);
+          }
+          usePlayerStore.setState((prev) => ({
+            files: prev.files.filter((f) => f.uri !== song.uri),
+          }));
+        } catch (err) {
+          console.warn("Failed to delete song:", song.uri, err);
+        }
+      }
+    }
 
-    for (const uri of newAudioUris) {
-      if (existingUris.has(uri)) continue;
+    // 🆕 Only process new songs
+    const newUris = audioUris.filter((uri) => !existingUris.has(uri));
+    if (newUris.length === 0) {
+      console.log("✅ No new songs to sync — folder is up to date");
+      return;
+    }
 
+    console.log(
+      `🎧 Found ${newUris.length} new songs — syncing full metadata...`
+    );
+
+    const cacheDir = await ensureCacheDir();
+
+    // Create lightweight placeholders (same as pickFolder)
+    const lightweightList: Song[] = newUris.map((uri, index) => {
       const filename = uri.split("/").pop() ?? "Unknown.mp3";
-      const title = filename.replace(/\.[^/.]+$/, "");
 
-      const newSong: Song = {
+      return {
         id: uuid.v4().toString().slice(-8),
         uri,
-        filename,
-        title,
+        filename: fileNameFromSafUri(uri) ?? filename,
+        title:
+          displayNameFromSafUri(uri) ??
+          decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
         artist: null,
         album: null,
         coverArt: null,
-        index: 0,
+        index,
+        comment: null,
+        date: null,
         duration: 0,
-        size: 0,
-        date: Date.now(),
         year: null,
         lyrics: null,
         syncedLyrics: null,
       };
+    });
 
-      await addSong(newSong);
-      newSongs.push(newSong);
-    }
+    // Sort like in pickFolder
+    const sortedList = lightweightList.sort(
+      (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
+    );
 
-    const allSongs = await getAllSongs();
-    usePlayerStore.setState({ files: allSongs });
+    // Merge with existing stored data (lyrics/syncedLyrics)
+    const mergedList: Song[] = sortedList.map((song) => {
+      const existing = existingFiles.find((f) => f.uri === song.uri);
+      return {
+        ...song,
+        lyrics: existing?.lyrics ?? song.lyrics ?? null,
+        syncedLyrics: existing?.syncedLyrics ?? song.syncedLyrics ?? null,
+      };
+    });
 
-    console.log(`✅ Synced folder: +${newSongs.length} new songs`);
+    const inflight = new Set<string>();
+    const fetched = new Set<string>();
+
+    const fetchOne = async (song: Song, idx: number) => {
+      if (fetched.has(song.uri) || inflight.has(song.uri)) return;
+      inflight.add(song.uri);
+      try {
+        const info = await FileSystem.getInfoAsync(song.uri as any);
+        const modificationTime =
+          info.exists && "modificationTime" in info
+            ? info.modificationTime
+            : undefined;
+
+        const cached =
+          (modificationTime &&
+            (await getCachedMetadata(song.uri, modificationTime))) ||
+          (await getCachedMetadataLoose(song.uri));
+
+        if (cached) {
+          usePlayerStore.setState((prev) => ({
+            files: prev.files.map((f) =>
+              f.uri === song.uri
+                ? {
+                    ...f,
+                    ...cached,
+                    index: idx,
+                    lyrics: f.lyrics ?? cached.lyrics ?? null,
+                    syncedLyrics: f.syncedLyrics ?? cached.syncedLyrics ?? null,
+                  }
+                : f
+            ),
+          }));
+          fetched.add(song.uri);
+          await addSong(cached);
+          return;
+        }
+
+        // No cache, read metadata
+        const tags = await readTagsForContentUri(song.uri, cacheDir);
+        const merged: Song = { ...song, ...tags, index: idx };
+
+        if (modificationTime) {
+          await setCachedMetadata(song.uri, modificationTime, merged);
+        } else {
+          await setCachedMetadataLoose(song.uri, merged);
+        }
+
+        usePlayerStore.setState((prev) => ({
+          files: prev.files.map((f) =>
+            f.uri === song.uri
+              ? {
+                  ...f,
+                  ...tags,
+                  index: idx,
+                  lyrics: f.lyrics ?? tags.lyrics ?? null,
+                  syncedLyrics: f.syncedLyrics ?? tags.syncedLyrics ?? null,
+                }
+              : f
+          ),
+        }));
+
+        await addSong(merged);
+        fetched.add(song.uri);
+      } catch (err) {
+        console.warn("Metadata parse failed:", err);
+      } finally {
+        inflight.delete(song.uri);
+      }
+    };
+
+    const runPool = async (list: Song[], concurrency: number) => {
+      let i = 0;
+      const workers = Array.from({ length: concurrency }).map(async () => {
+        while (i < list.length) {
+          const item = list[i++];
+          await fetchOne(item, item.index);
+        }
+      });
+      await Promise.all(workers);
+    };
+
+    const firstChunk = mergedList.slice(0, 40);
+    const rest = mergedList.slice(40);
+
+    await Promise.all([runPool(firstChunk, 4), runPool(rest, 2)]);
+
+    console.log(`✅ Folder sync completed for ${mergedList.length} songs`);
   } catch (err) {
     console.error("❌ Error syncing folder:", err);
+  } finally {
+    const baseSongs = await getAllSongs();
+    usePlayerStore.setState({ files: baseSongs });
   }
 }

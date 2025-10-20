@@ -39,8 +39,11 @@ export default function PlayerBinder() {
 
       if (songs.length > 0) {
         console.log(`🎵 Loaded from SQLite: ${songs.length} songs`);
-        usePlayerStore.setState({ files: songs });
         await syncFolder(); // optional: refresh silently
+        // const baseSongs = await getAllSongs();
+        // usePlayerStore.setState({ files: baseSongs });
+        // await clearSongs();
+        // console.log("Deleted");
       } else {
         await pickFolder(); // do initial scan
       }
