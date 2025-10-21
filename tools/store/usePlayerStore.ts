@@ -214,6 +214,14 @@ export const usePlayerStore = create<PlayerStore>()(
 
         if (localUri) {
           get().updateFileLocalUri(id, localUri);
+
+          // add the song to “Downloads” playlist
+          const { ensureDownloadsPlaylist, addTrackToPlaylist } =
+            usePlaylistStore.getState();
+          const downloadsId = ensureDownloadsPlaylist();
+
+          // Add the track (make sure it includes updated localUri)
+          addTrackToPlaylist(downloadsId, { ...file, uri: localUri });
         }
       },
 
@@ -882,8 +890,9 @@ export const usePlaylistStore = create(
     removePlaylist: (id: string) => void;
     addTrackToPlaylist: (playlistId: string, track: Song) => void;
     removeTrackFromPlaylist: (playlistId: string, track: Song) => void;
+    ensureDownloadsPlaylist: () => string;
   }>(
-    (set) => ({
+    (set, get) => ({
       playlists: [],
       addPlaylist: (name, description) =>
         set((s) => ({
@@ -939,6 +948,23 @@ export const usePlaylistStore = create(
               : p
           ),
         })),
+      ensureDownloadsPlaylist: () => {
+        const s = get();
+        let downloads = s.playlists.find(
+          (p) => p.name.toLowerCase() === "downloads"
+        );
+        if (!downloads) {
+          const newId = uuid.v4().toString();
+          s.addPlaylist("Downloads", "Downloaded songs");
+          downloads = { id: newId } as Playlist;
+        }
+        // Return ID for use elsewhere
+        return (
+          downloads?.id ||
+          s.playlists.find((p) => p.name === "Downloads")?.id ||
+          ""
+        );
+      },
     }),
     {
       name: "playlist-store",

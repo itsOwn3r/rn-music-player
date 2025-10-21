@@ -119,8 +119,8 @@ export async function syncFolder() {
       });
     } else {
       usePlayerStore.setState({
-        currentSongIndex: 0,
-        currentSong: sortedList[0],
+        currentSongIndex: sortedList.length - 1,
+        currentSong: sortedList[sortedList.length - 1],
       });
     }
 

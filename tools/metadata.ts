@@ -4,29 +4,24 @@ import { parseBlob } from "music-metadata-browser";
 import uuid from "react-native-uuid";
 import { copyContentToCache, getFilenameFromAnyUri } from "./fileUtils";
 import saveCoverArtIfNeeded from "./saveCoverArtIfNeeded";
-import { getCachedMetadata, setCachedMetadata } from "./setAndGetCache";
 
 export async function readTagsForContentUri(
   uri: string,
   cacheDir: string
 ): Promise<Song> {
+  let fileUri: string | null = null;
   try {
     const fileInfo = await FileSystem.getInfoAsync(uri, { size: true });
     if (!fileInfo.exists) throw new Error("File not found");
-    // await AsyncStorage.clear();
     // Expo gives modificationTime in seconds → convert to ms
     const modificationTime =
       (fileInfo as { modificationTime?: number }).modificationTime ??
       Date.now() / 1000;
     const timestamp = modificationTime * 1000;
 
-    // 1️⃣ Try cache first
-    const cached = await getCachedMetadata(uri, timestamp);
-    if (cached) return cached;
-
     // 2️⃣ Parse metadata
     const filename = getFilenameFromAnyUri(uri);
-    const fileUri = await copyContentToCache(uri, cacheDir, filename); // file://...
+    fileUri = await copyContentToCache(uri, cacheDir, filename); // file://...
     const blob = await fetch(fileUri).then((res) => res.blob());
 
     const metadata = await parseBlob(blob);
@@ -56,9 +51,6 @@ export async function readTagsForContentUri(
       date: timestamp, // ✅ JS timestamp in ms
     };
 
-    // 3️⃣ Save to AsyncStorage cache (lightweight JSON only)
-    await setCachedMetadata(uri, timestamp, songMetadata);
-
     return songMetadata;
   } catch (err) {
     console.warn("Failed to read tags:", err);
@@ -79,5 +71,13 @@ export async function readTagsForContentUri(
       index: -1,
       uri,
     };
+  } finally {
+    if (fileUri) {
+      try {
+        await FileSystem.deleteAsync(fileUri, { idempotent: true });
+      } catch (cleanupErr) {
+        console.warn("Cleanup failed for:", fileUri, cleanupErr);
+      }
+    }
   }
 }
