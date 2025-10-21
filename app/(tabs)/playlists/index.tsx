@@ -13,18 +13,26 @@ const PlaylistScreen = () => {
   const router = useRouter();
 
   const getPlaylists = usePlaylistStore((s) => s.playlists);
+  const getMostPlayedPlaylist = usePlaylistStore(
+    (s) => s.getMostPlayedPlaylist
+  );
+
+  const allPlaylists = useMemo(
+    () => [getMostPlayedPlaylist(), ...getPlaylists],
+    [getMostPlayedPlaylist, getPlaylists]
+  );
 
   const [search, setSearch] = useState("");
 
   const filteredPlaylists = useMemo(() => {
-    if (search.trim() === "") return getPlaylists;
+    if (search.trim() === "") return allPlaylists;
     const lowerSearch = search.toLowerCase();
-    return getPlaylists.filter(
+    return allPlaylists.filter(
       (t) =>
         t?.name?.toLowerCase().includes(lowerSearch) ||
         t?.description?.toLowerCase().includes(lowerSearch)
     );
-  }, [getPlaylists, search]);
+  }, [allPlaylists, search]);
 
   const handlePlaylistPress = (playlistId: string) => {
     router.push({

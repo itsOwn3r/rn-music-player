@@ -18,13 +18,25 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
-export const PlaylistTracksList = ({ playlist }: { playlist: Playlist }) => {
+export const PlaylistTracksList = ({
+  playlist,
+  playlistName,
+}: {
+  playlist: Playlist;
+  playlistName: string;
+}) => {
   const [search, setSearch] = useState("");
   const files = usePlayerStore((s) => s.files);
 
-  const populatePlaylistSong = files.filter((song) =>
+  let populatePlaylistSong = files.filter((song) =>
     playlist.songs.includes(song.uri)
   );
+
+  if (playlistName === "most-played") {
+    populatePlaylistSong = populatePlaylistSong.sort(
+      (a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)
+    );
+  }
 
   const filteredPlaylistSongs = useMemo(() => {
     if (search.trim() === "") return populatePlaylistSong;

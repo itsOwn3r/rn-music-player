@@ -16,6 +16,8 @@ export interface Song {
   lyrics?: string | null;
   syncedLyrics?: string | null;
   size?: number;
+  playCount?: number;
+  lastPlayedAt?: number;
 }
 
 export type Artist = {

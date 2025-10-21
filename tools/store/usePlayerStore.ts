@@ -121,6 +121,7 @@ type PlayerStore = {
 
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
+  incrementPlayCount: (id: string | null | undefined) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -429,7 +430,7 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
       playFile: async (file: Song, duration?: number) => {
-        const engine = get().engine;
+        const { engine, incrementPlayCount } = get();
         if (!engine) return;
 
         await saveSongMetadata(file);
@@ -437,6 +438,8 @@ export const usePlayerStore = create<PlayerStore>()(
         await engine.replace({ uri: uri });
         await engine.seekTo(0);
         await engine.play();
+
+        incrementPlayCount(file?.id);
 
         set({
           isPlaying: true,
@@ -857,6 +860,22 @@ export const usePlayerStore = create<PlayerStore>()(
               : f
           ),
         })),
+      incrementPlayCount: (id: string | null | undefined) => {
+        if (!id) {
+          return;
+        }
+        set((s) => ({
+          files: s.files.map((song) =>
+            song.id === id
+              ? {
+                  ...song,
+                  playCount: (song.playCount || 0) + 1,
+                  lastPlayedAt: Date.now(),
+                }
+              : song
+          ),
+        }));
+      },
     }),
     {
       name: "player-storage",
@@ -891,6 +910,7 @@ export const usePlaylistStore = create(
     addTrackToPlaylist: (playlistId: string, track: Song) => void;
     removeTrackFromPlaylist: (playlistId: string, track: Song) => void;
     ensureDownloadsPlaylist: () => string;
+    getMostPlayedPlaylist: () => Playlist;
   }>(
     (set, get) => ({
       playlists: [],
@@ -964,6 +984,24 @@ export const usePlaylistStore = create(
           s.playlists.find((p) => p.name === "Downloads")?.id ||
           ""
         );
+      },
+      getMostPlayedPlaylist: () => {
+        const { files } = usePlayerStore.getState();
+        const sorted = [...files]
+          .filter((s) => (s.playCount || 0) > 0)
+          .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
+          .slice(0, 50); // top 50 songs, for example
+
+        return {
+          id: "most-played",
+          name: "Most Played",
+          songs: sorted.map((s) => s.uri),
+          songsLength: sorted.length,
+          duration: sorted.reduce((acc, s) => acc + (s.duration || 0), 0),
+          description: "Your top 50 most listened songs",
+          createdAt: 0,
+          updatedAt: Date.now(),
+        } as Playlist;
       },
     }),
     {
