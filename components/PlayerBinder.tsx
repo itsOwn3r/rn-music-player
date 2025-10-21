@@ -141,13 +141,10 @@ export default function PlayerBinder() {
           advancingRef.current = true; // lock
 
           try {
-            if (repeat === "one") {
-              await engine.seekTo(0);
-              await engine.play();
-            } else if (queue.length > 0) {
+            if (queue.length > 0) {
               await playAnotherSongInQueue("next", "update");
             } else {
-              console.log("Wronged");
+              console.log("Wronged - Queue is empty");
             }
           } finally {
             // give engine a short time to settle before allowing another advance

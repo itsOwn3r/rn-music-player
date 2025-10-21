@@ -21,7 +21,9 @@ export async function initDB() {
       date INTEGER,
       year INTEGER,
       lyrics TEXT,
-      syncedLyrics TEXT
+      syncedLyrics TEXT,
+      playCount INTEGER DEFAULT 0,
+      lastPlayedAt INTEGER DEFAULT 0
     );
 
     CREATE TABLE IF NOT EXISTS favorites (
@@ -108,5 +110,17 @@ export async function addLyrics(
   await db.runAsync(
     "UPDATE songs SET lyrics = ?, syncedLyrics = ? WHERE id = ?",
     [lyrics, syncedLyrics, songId]
+  );
+}
+
+export async function incrementPlayCountInDB(
+  songId: string | null | undefined
+) {
+  if (!songId) {
+    return;
+  }
+  await db.runAsync(
+    "UPDATE songs SET playCount = COALESCE(playCount, 0) + 1, lastPlayedAt = strftime('%s','now') WHERE id = ?",
+    [songId]
   );
 }

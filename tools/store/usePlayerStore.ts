@@ -4,6 +4,7 @@ import {
   addSong,
   getAllSongs,
   getFavoriteSongs,
+  incrementPlayCountInDB,
   removeFavorite,
 } from "@/tools/db";
 import {
@@ -440,6 +441,7 @@ export const usePlayerStore = create<PlayerStore>()(
         await engine.play();
 
         incrementPlayCount(file?.id);
+        await incrementPlayCountInDB(file?.id);
 
         set({
           isPlaying: true,
@@ -720,6 +722,7 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSong,
           position,
           shuffle,
+          incrementPlayCount,
         } = get();
 
         if (!queue.length) return;
@@ -740,6 +743,8 @@ export const usePlayerStore = create<PlayerStore>()(
           engine?.seekTo(0);
           engine?.play();
           setIsPlaying(true);
+          incrementPlayCount(currentSong?.id);
+          await incrementPlayCountInDB(currentSong?.id);
           return;
         }
 

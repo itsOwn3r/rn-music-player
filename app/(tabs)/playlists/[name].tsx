@@ -12,7 +12,9 @@ const PlaylistScreen = () => {
   );
   const allPlaylists = [getMostPlayedPlaylist(), ...getPlaylists];
 
-  let playlist = allPlaylists.find((playlist) => playlist.id === playlistName);
+  const playlist = allPlaylists.find(
+    (playlist) => playlist.id === playlistName
+  );
 
   if (!playlist) {
     console.warn(`Playlist ${playlistName} was not found!`);
