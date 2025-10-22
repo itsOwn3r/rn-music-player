@@ -1,8 +1,9 @@
+import LoadingScreen from "@/components/LoadingScreen";
 import PlaylistsList from "@/components/PlaylistsList";
-import { usePlaylistStore } from "@/tools/store/usePlayerStore";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useFocusEffect, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import { TextInput, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
@@ -12,27 +13,39 @@ import {
 const PlaylistScreen = () => {
   const router = useRouter();
 
-  const getPlaylists = usePlaylistStore((s) => s.playlists);
-  const getMostPlayedPlaylist = usePlaylistStore(
-    (s) => s.getMostPlayedPlaylist
+  const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
+  const isLoading = usePlayerStore((s) => s.isLoading);
+
+  useFocusEffect(
+    useCallback(() => {
+      usePlayerStore.setState({ isLoading: true });
+      try {
+        (async () => {
+          await loadPlaylists("all");
+        })();
+      } catch (error) {
+        console.log(error);
+      } finally {
+        usePlayerStore.setState({ isLoading: false });
+      }
+    }, [loadPlaylists])
   );
 
-  const allPlaylists = useMemo(
-    () => [getMostPlayedPlaylist(), ...getPlaylists],
-    [getMostPlayedPlaylist, getPlaylists]
-  );
+  const getPlaylists = usePlaylistStore((s) => s.playlists);
+
+  // console.log("getPlaylists", getPlaylists);
 
   const [search, setSearch] = useState("");
 
   const filteredPlaylists = useMemo(() => {
-    if (search.trim() === "") return allPlaylists;
+    if (search.trim() === "") return getPlaylists;
     const lowerSearch = search.toLowerCase();
-    return allPlaylists.filter(
+    return getPlaylists.filter(
       (t) =>
         t?.name?.toLowerCase().includes(lowerSearch) ||
         t?.description?.toLowerCase().includes(lowerSearch)
     );
-  }, [allPlaylists, search]);
+  }, [getPlaylists, search]);
 
   const handlePlaylistPress = (playlistId: string) => {
     router.push({
@@ -41,6 +54,8 @@ const PlaylistScreen = () => {
     });
   };
   const insets = useSafeAreaInsets();
+
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <SafeAreaView

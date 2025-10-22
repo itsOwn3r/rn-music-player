@@ -1,4 +1,4 @@
-import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { syncFolder } from "@/tools/syncFolder";
 import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
 import { useEffect, useRef } from "react";
@@ -26,8 +26,9 @@ export default function PlayerBinder() {
   const lastEngineUpdate = useRef<number>(0);
   const lastEngineTime = useRef<number>(0);
 
-  const pickFolder = usePlayerStore((s) => s.pickFolder);
+  // const pickFolder = usePlayerStore((s) => s.pickFolder);
   //const isLoading = usePlayerStore((s) => s.isLoading);
+  const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
 
   // useEffect(() => {
   //   pickFolder();
@@ -41,6 +42,8 @@ export default function PlayerBinder() {
         // const folderUri = await AsyncStorage.getItem("musicDirectoryUri");
 
         await syncFolder();
+
+        await loadPlaylists("all");
 
         // ✅ Auto-sync on app resume
         appStateSubscription = AppState.addEventListener(

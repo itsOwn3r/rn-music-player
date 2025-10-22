@@ -33,7 +33,7 @@ export type Playlist = {
   userName?: string;
   profileUrl?: string;
   description?: string;
-  songs: string[];
+  songs: Song[];
   songsLength: number;
   duration: number;
   coverArt?: string;

@@ -10,7 +10,7 @@ import {
 } from "react-native";
 
 import { unknownTrackImageUri } from "@/constants/images";
-import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
+import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Playlist } from "@/types/types";
 import { Ionicons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -26,17 +26,16 @@ export const PlaylistTracksList = ({
   playlistName: string;
 }) => {
   const [search, setSearch] = useState("");
-  const files = usePlayerStore((s) => s.files);
 
-  let populatePlaylistSong = files.filter((song) =>
-    playlist.songs.includes(song.uri)
-  );
+  const populatePlaylistSong = useMemo(() => {
+    return playlist.songs ?? [];
+  }, [playlist.songs]);
 
-  if (playlistName === "most-played") {
-    populatePlaylistSong = populatePlaylistSong.sort(
-      (a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)
-    );
-  }
+  // if (playlistName === "most-played") {
+  //   populatePlaylistSong = populatePlaylistSong.sort(
+  //     (a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)
+  //   );
+  // }
 
   const filteredPlaylistSongs = useMemo(() => {
     if (search.trim() === "") return populatePlaylistSong;

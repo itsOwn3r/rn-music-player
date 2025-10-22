@@ -56,7 +56,7 @@ const TrackShortcutsMenu = ({
 
   const removeFromPlaylist = () => {
     if (!playlistId) return;
-    removeTrackFromPlaylist(playlistId, track);
+    removeTrackFromPlaylist(playlistId, track.id || "");
   };
 
   const openMenu = () => {

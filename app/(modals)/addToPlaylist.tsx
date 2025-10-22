@@ -1,9 +1,10 @@
 import DismissPlayerSymbol from "@/components/DismissPlayerSymbol";
+import LoadingScreen from "@/components/LoadingScreen";
 import PlaylistsList from "@/components/PlaylistsList";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
-import { useLocalSearchParams, useRouter } from "expo-router";
-import React, { useMemo, useState } from "react";
+import { useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import React, { useCallback, useMemo, useState } from "react";
 import {
   Dimensions,
   StyleSheet,
@@ -27,6 +28,28 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const AddToPlaylist = () => {
   const { trackUri } = useLocalSearchParams<{ trackUri: string }>();
+  const isLoading = usePlayerStore((s) => s.isLoading);
+
+  const [isMounted, setIsMounted] = useState(false);
+
+  const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
+
+  useFocusEffect(
+    useCallback(() => {
+      usePlayerStore.setState({ isLoading: true });
+      try {
+        (async () => {
+          await loadPlaylists("user");
+        })();
+      } catch (error) {
+        console.log(error);
+      } finally {
+        usePlayerStore.setState({ isLoading: false });
+        setIsMounted(true);
+      }
+    }, [loadPlaylists])
+  );
+
   const getPlaylists = usePlaylistStore((s) => s.playlists);
   const addTrackToPlaylist = usePlaylistStore((s) => s.addTrackToPlaylist);
 
@@ -89,9 +112,11 @@ const AddToPlaylist = () => {
     });
 
   const onPlaylistPress = async (playlistId: string) => {
-    addTrackToPlaylist(playlistId, track[0]);
+    addTrackToPlaylist(playlistId, track[0].id || "");
     router.dismiss();
   };
+
+  if (!isMounted) return <LoadingScreen />;
 
   return (
     <SafeAreaView

@@ -7,14 +7,12 @@ import { View } from "react-native";
 const PlaylistScreen = () => {
   const { name: playlistName } = useLocalSearchParams<{ name: string }>();
   const getPlaylists = usePlaylistStore((s) => s.playlists);
-  const getMostPlayedPlaylist = usePlaylistStore(
-    (s) => s.getMostPlayedPlaylist
-  );
-  const allPlaylists = [getMostPlayedPlaylist(), ...getPlaylists];
 
-  const playlist = allPlaylists.find(
+  const playlist = getPlaylists.find(
     (playlist) => playlist.id === playlistName
   );
+
+  console.log("playlist", playlist);
 
   if (!playlist) {
     console.warn(`Playlist ${playlistName} was not found!`);
@@ -24,7 +22,7 @@ const PlaylistScreen = () => {
 
   return (
     <View className="flex-1 bg-black px-1">
-      <PlaylistTracksList playlist={playlist} playlistName={playlistName} />
+      <PlaylistTracksList playlist={playlist} playlistName={playlist.name} />
     </View>
   );
 };

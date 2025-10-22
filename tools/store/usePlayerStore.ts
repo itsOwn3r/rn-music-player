@@ -2,10 +2,15 @@ import { songs as staticSongs } from "@/assets/data/playlists";
 import {
   addFavorite,
   addSong,
+  addSongToPlaylist,
+  createPlaylist,
+  getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
   incrementPlayCountInDB,
   removeFavorite,
+  removePlaylist,
+  removeSongFromPlaylist,
 } from "@/tools/db";
 import {
   displayNameFromSafUri,
@@ -907,111 +912,48 @@ export const usePlayerStore = create<PlayerStore>()(
   )
 );
 
-export const usePlaylistStore = create(
-  persist<{
-    playlists: Playlist[];
-    addPlaylist: (name: string, description?: string) => void;
-    removePlaylist: (id: string) => void;
-    addTrackToPlaylist: (playlistId: string, track: Song) => void;
-    removeTrackFromPlaylist: (playlistId: string, track: Song) => void;
-    ensureDownloadsPlaylist: () => string;
-    getMostPlayedPlaylist: () => Playlist;
-  }>(
-    (set, get) => ({
-      playlists: [],
-      addPlaylist: (name, description) =>
-        set((s) => ({
-          playlists: [
-            ...s.playlists,
-            {
-              id: uuid.v4().toString(),
-              name,
-              songs: [],
-              duration: 0,
-              description: description,
-              songsLength: 0,
-              createdAt: Date.now(),
-              updatedAt: Date.now(),
-            },
-          ],
-        })),
-      removePlaylist: (id) =>
-        set((s) => ({
-          playlists: s.playlists.filter((p) => p.id !== id),
-        })),
-      addTrackToPlaylist: (id, track) =>
-        set((s) => ({
-          playlists: s.playlists.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  songs: [...p.songs, track.uri],
-                  duration: p.duration + track.duration,
-                  songsLength: p.songsLength + 1,
-                  updatedAt: Date.now(),
-                  coverArt:
-                    p.songsLength === 0
-                      ? track.coverArt
-                        ? track.coverArt
-                        : undefined
-                      : undefined,
-                }
-              : p
-          ),
-        })),
-      removeTrackFromPlaylist: (id, track) =>
-        set((s) => ({
-          playlists: s.playlists.map((p) =>
-            p.id === id
-              ? {
-                  ...p,
-                  songs: p.songs.filter((u) => u !== track.uri),
-                  duration: p.duration - track.duration,
-                  songsLength: p.songsLength - 1,
-                  updatedAt: Date.now(),
-                }
-              : p
-          ),
-        })),
-      ensureDownloadsPlaylist: () => {
-        const s = get();
-        let downloads = s.playlists.find(
-          (p) => p.name.toLowerCase() === "downloads"
-        );
-        if (!downloads) {
-          const newId = uuid.v4().toString();
-          s.addPlaylist("Downloads", "Downloaded songs");
-          downloads = { id: newId } as Playlist;
-        }
-        // Return ID for use elsewhere
-        return (
-          downloads?.id ||
-          s.playlists.find((p) => p.name === "Downloads")?.id ||
-          ""
-        );
-      },
-      getMostPlayedPlaylist: () => {
-        const { files } = usePlayerStore.getState();
-        const sorted = [...files]
-          .filter((s) => (s.playCount || 0) > 0)
-          .sort((a, b) => (b.playCount || 0) - (a.playCount || 0))
-          .slice(0, 50); // top 50 songs, for example
+export const usePlaylistStore = create<{
+  playlists: Playlist[];
+  loadPlaylists: (type: "user" | "system" | "all") => Promise<void>;
+  addPlaylist: (name: string, description?: string) => Promise<void>;
+  removePlaylist: (id: string) => Promise<void>;
+  addTrackToPlaylist: (playlistId: string, songId: string) => Promise<void>;
+  removeTrackFromPlaylist: (
+    playlistId: string,
+    songId: string
+  ) => Promise<void>;
+}>((set, get) => ({
+  playlists: [],
 
-        return {
-          id: "most-played",
-          name: "Most Played",
-          songs: sorted.map((s) => s.uri),
-          songsLength: sorted.length,
-          duration: sorted.reduce((acc, s) => acc + (s.duration || 0), 0),
-          description: "Your top 50 most listened songs",
-          createdAt: 0,
-          updatedAt: Date.now(),
-        } as Playlist;
-      },
-    }),
-    {
-      name: "playlist-store",
-      storage: createJSONStorage(() => AsyncStorage),
+  loadPlaylists: async (type: "user" | "system" | "all" = "all") => {
+    usePlayerStore.setState({ isLoading: true });
+    try {
+      const playlists = await getAllPlaylists(type);
+      set({ playlists });
+    } catch (error) {
+      console.error("Failed to load playlists:", error);
+    } finally {
+      usePlayerStore.setState({ isLoading: false });
     }
-  )
-);
+  },
+
+  addPlaylist: async (name, description) => {
+    await createPlaylist(name, description);
+    await get().loadPlaylists("all");
+  },
+
+  removePlaylist: async (id) => {
+    await removePlaylist(id);
+    await get().loadPlaylists("all");
+  },
+
+  addTrackToPlaylist: async (playlistId, songId) => {
+    await addSongToPlaylist(playlistId, songId);
+    await get().loadPlaylists("all");
+  },
+
+  removeTrackFromPlaylist: async (playlistId, songId) => {
+    await removeSongFromPlaylist(playlistId, songId);
+    await get().loadPlaylists("all");
+  },
+}));
