@@ -164,12 +164,15 @@ export async function incrementPlayCountInDB(
 export async function createPlaylist(name: string, description?: string) {
   const id = uuid.v4().toString().slice(-8);
   const now = Date.now();
-
-  await db.runAsync(
-    `INSERT INTO playlists (id, name, description, createdAt, updatedAt)
-     VALUES (?, ?, ?, ?, ?)`,
-    [id, name, description || "", "user", now, now]
-  );
+  try {
+    await db.runAsync(
+      `INSERT INTO playlists (id, name, description, coverArt, type, createdAt, updatedAt)
+     VALUES (?, ?, ?, ?, ?, ?, ?)`,
+      [id, name, description || "", null, "user", now, now]
+    );
+  } catch (error) {
+    console.log(error);
+  }
 
   return id;
 }
@@ -199,6 +202,43 @@ export async function getAllPlaylists(
   }
 
   return playlists;
+}
+
+export async function getSpeceficSystemPlaylist(
+  type: "recent" | "most-played"
+) {
+  let songs: Song[] = [];
+
+  const playlist: Playlist | null = await db.getFirstAsync(
+    `SELECT * FROM playlists WHERE type = ? AND id = ?`,
+    ["system", type]
+  );
+
+  if (!playlist) {
+    return;
+  }
+
+  if (type === "recent") {
+    // Recently added: last 50 songs by date
+    songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        ORDER BY date DESC
+      `);
+  } else if (type === "most-played") {
+    // Most played: top 50 by playCount
+    songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        WHERE playCount > 0
+        ORDER BY playCount DESC, lastPlayedAt DESC
+        LIMIT 50
+      `);
+  }
+
+  playlist.songs = songs;
+  playlist.songsLength = songs.length;
+  playlist.duration = songs.reduce((acc, s) => acc + (s.duration || 0), 0);
+
+  return playlist;
 }
 
 export async function addSongToPlaylist(playlistId: string, songId: string) {
@@ -283,8 +323,8 @@ export async function getFavoriteSongs(): Promise<Song[]> {
 }
 
 export async function setLocalURI(localUri: string, songId: string) {
-  await db.runAsync(`UPDATE songs WHERE id = ? SET localUri = ?`, [
-    songId,
+  await db.runAsync(`UPDATE songs SET localUri = ? WHERE id = ?`, [
     localUri,
+    songId,
   ]);
 }

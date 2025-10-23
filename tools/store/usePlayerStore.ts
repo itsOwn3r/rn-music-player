@@ -7,6 +7,7 @@ import {
   getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
+  getSpeceficSystemPlaylist,
   incrementPlayCountInDB,
   removeFavorite,
   removePlaylist,
@@ -867,6 +868,9 @@ export const usePlaylistStore = create<{
     playlistId: string,
     songId: string
   ) => Promise<void>;
+  getSpeceficSystemPlaylist: (
+    type: "recent" | "most-played"
+  ) => Promise<Playlist | undefined>;
 }>((set, get) => ({
   playlists: [],
   isLoading: false,
@@ -926,5 +930,9 @@ export const usePlaylistStore = create<{
   removeTrackFromPlaylist: async (playlistId, songId) => {
     await removeSongFromPlaylist(playlistId, songId);
     await get().loadPlaylists("all");
+  },
+  getSpeceficSystemPlaylist: async (type: "recent" | "most-played") => {
+    const playlist = await getSpeceficSystemPlaylist(type);
+    return playlist;
   },
 }));

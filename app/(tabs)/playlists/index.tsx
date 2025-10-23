@@ -4,7 +4,7 @@ import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
-import { TextInput, TouchableOpacity, View } from "react-native";
+import { Image, TextInput, TouchableOpacity, View } from "react-native";
 import {
   SafeAreaView,
   useSafeAreaInsets,
@@ -35,13 +35,37 @@ const PlaylistScreen = () => {
   );
 
   const getPlaylists = usePlaylistStore((s) => s.playlists);
-
+  // console.log(getPlaylists);
   // console.log("getPlaylists", getPlaylists);
 
   const [search, setSearch] = useState("");
 
   const filteredPlaylists = useMemo(() => {
-    if (search.trim() === "") return getPlaylists;
+    if (search.trim() === "")
+      return getPlaylists.map((s) =>
+        s.id === "most-played"
+          ? {
+              ...s,
+              coverArt: Image.resolveAssetSource(
+                require("@/assets/images/most-played.png")
+              ).uri,
+            }
+          : s.id === "recent"
+            ? {
+                ...s,
+                coverArt: Image.resolveAssetSource(
+                  require("@/assets/images/recent.png")
+                ).uri,
+              }
+            : s.id === "downloads"
+              ? {
+                  ...s,
+                  coverArt: Image.resolveAssetSource(
+                    require("@/assets/images/download.png")
+                  ).uri,
+                }
+              : s
+      );
     const lowerSearch = search.toLowerCase();
     return getPlaylists.filter(
       (t) =>
