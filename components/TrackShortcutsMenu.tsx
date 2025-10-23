@@ -26,18 +26,18 @@ const TrackShortcutsMenu = ({
   playlistId,
 }: TrackShortcutsMenuProps) => {
   const router = useRouter();
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const toggleFavorite = usePlaylistStore((s) => s.toggleFavorite);
   const removeTrackFromPlaylist = usePlaylistStore(
     (s) => s.removeTrackFromPlaylist
   );
-  const isFavorite = usePlayerStore((s) => s.isFavorite(track.uri));
+  const isFavorite = usePlaylistStore((s) => s.isFavorite(track.uri));
 
   const setLyrics = usePlayerStore((s) => s.setLyrics);
 
   const [visible, setVisible] = useState(false);
 
   const doToggleFavorite = () => {
-    toggleFavorite(track.uri);
+    toggleFavorite(track.id || "");
     setVisible(false);
   };
 

@@ -1,6 +1,6 @@
 import LoadingScreen from "@/components/LoadingScreen";
 import PlaylistsList from "@/components/PlaylistsList";
-import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
+import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useFocusEffect, useRouter } from "expo-router";
 import React, { useCallback, useMemo, useState } from "react";
@@ -14,21 +14,24 @@ const PlaylistScreen = () => {
   const router = useRouter();
 
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
-  const isLoading = usePlayerStore((s) => s.isLoading);
+  const isLoading = usePlaylistStore((s) => s.isLoading);
+  const setIsLoading = usePlaylistStore((s) => s.setIsLoading);
 
   useFocusEffect(
     useCallback(() => {
-      usePlayerStore.setState({ isLoading: true });
-      try {
-        (async () => {
+      const fetchPlaylists = async () => {
+        try {
+          setIsLoading(true);
           await loadPlaylists("all");
-        })();
-      } catch (error) {
-        console.log(error);
-      } finally {
-        usePlayerStore.setState({ isLoading: false });
-      }
-    }, [loadPlaylists])
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchPlaylists();
+    }, [loadPlaylists, setIsLoading])
   );
 
   const getPlaylists = usePlaylistStore((s) => s.playlists);

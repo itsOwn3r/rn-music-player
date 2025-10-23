@@ -11,6 +11,7 @@ import {
   removeFavorite,
   removePlaylist,
   removeSongFromPlaylist,
+  setLocalURI,
 } from "@/tools/db";
 import {
   displayNameFromSafUri,
@@ -70,8 +71,6 @@ type PlayerStore = {
   repeat: "off" | "all" | "one";
   // Actions
   loadLibrary: () => Promise<void>;
-  loadFavorites: () => Promise<void>;
-  toggleFavorite: (songId: string) => Promise<void>;
   addFile: (song: Song) => Promise<void>;
 
   // engine binding + progress
@@ -110,8 +109,7 @@ type PlayerStore = {
   toggleShowLyrics: () => void;
   volume: number;
   setVolume: (val: number) => void;
-  favorites: Song[]; // store song IDs
-  isFavorite: (songId: string) => boolean;
+
   queue: Song[]; // songs queued up
   queueContext?: "playlist" | "search" | "library" | "custom" | null;
   addToQueue: (songs: Song[]) => void;
@@ -169,12 +167,6 @@ export const usePlayerStore = create<PlayerStore>()(
         const songs = await getAllSongs();
         set({ files: songs });
       },
-
-      // 🔄 Load favorites
-      loadFavorites: async () => {
-        const favs = await getFavoriteSongs();
-        set({ favorites: favs });
-      },
       setFiles: (files) => {
         const prevFiles = get().files;
 
@@ -222,13 +214,12 @@ export const usePlayerStore = create<PlayerStore>()(
         if (localUri) {
           get().updateFileLocalUri(id, localUri);
 
-          // add the song to “Downloads” playlist
-          const { ensureDownloadsPlaylist, addTrackToPlaylist } =
-            usePlaylistStore.getState();
-          const downloadsId = ensureDownloadsPlaylist();
+          const { addTrackToPlaylist } = usePlaylistStore.getState();
+
+          await setLocalURI(localUri, file.id || "");
 
           // Add the track (make sure it includes updated localUri)
-          addTrackToPlaylist(downloadsId, { ...file, uri: localUri });
+          addTrackToPlaylist("downloads", file.id || "");
         }
       },
 
@@ -669,21 +660,6 @@ export const usePlayerStore = create<PlayerStore>()(
           set((s) => ({ showLyrics: !s.showLyrics }));
           return { showLyrics: newState };
         }),
-      favorites: [],
-      toggleFavorite: async (songId) => {
-        const isFav = get().favorites.some((f) => f.id === songId);
-        if (isFav) {
-          await removeFavorite(songId);
-        } else {
-          await addFavorite(songId);
-        }
-        const updatedFavs = await getFavoriteSongs();
-        set({ favorites: updatedFavs });
-      },
-      isFavorite: (songId) => {
-        const isFav = get().favorites.some((f) => f.id === songId);
-        return isFav;
-      },
 
       addToQueue: (songs) =>
         set((state) => {
@@ -811,44 +787,6 @@ export const usePlayerStore = create<PlayerStore>()(
 
         await new Promise((r) => setTimeout(r, 350)); // let engine settle
       },
-      // rehydrateSettings: async () => {
-      //   try {
-      //     const [savedRepeat, savedShuffle, savedVolume, savedFavorites] =
-      //       await Promise.all([
-      //         AsyncStorage.getItem("repeat"),
-      //         AsyncStorage.getItem("shuffle"),
-      //         AsyncStorage.getItem("volume"),
-      //         AsyncStorage.getItem("favorites"),
-      //       ]);
-      //     if (savedRepeat) {
-      //       set({ repeat: savedRepeat as PlayerStore["repeat"] });
-      //     }
-      //     if (savedShuffle) {
-      //       set({ shuffle: JSON.parse(savedShuffle) });
-      //     }
-      //     if (savedVolume) {
-      //       const vol = JSON.parse(savedVolume);
-      //       set({ volume: vol });
-      //       const engine = get().engine;
-      //       if (engine && "setVolume" in engine) {
-      //         (engine as any).setVolume(vol);
-      //       }
-      //     }
-      //     if (savedFavorites) {
-      //       set({ favorites: JSON.parse(savedFavorites) });
-      //     }
-      //     const { files } = get();
-      //     if (files.length) {
-      //       const mergedFiles = files.map((f) => {
-      //         const match = staticSongs.find((s) => s.uri === f.uri);
-      //         return match ? { ...f, ...match } : f;
-      //       });
-      //       set({ files: mergedFiles });
-      //     }
-      //   } catch (err) {
-      //     console.warn("Failed to rehydrate player settings:", err);
-      //   }
-      // },
       setVolume: (val: number) => {
         // AsyncStorage.setItem("volume", JSON.stringify(val));
         set({ volume: val });
@@ -914,6 +852,13 @@ export const usePlayerStore = create<PlayerStore>()(
 
 export const usePlaylistStore = create<{
   playlists: Playlist[];
+  favorites: Song[]; // store song IDs
+  isFavorite: (songId: string) => boolean;
+  loadFavorites: () => Promise<void>;
+  toggleFavorite: (songId: string) => Promise<void>;
+
+  isLoading: boolean;
+  setIsLoading: (state: boolean) => void;
   loadPlaylists: (type: "user" | "system" | "all") => Promise<void>;
   addPlaylist: (name: string, description?: string) => Promise<void>;
   removePlaylist: (id: string) => Promise<void>;
@@ -924,7 +869,33 @@ export const usePlaylistStore = create<{
   ) => Promise<void>;
 }>((set, get) => ({
   playlists: [],
+  isLoading: false,
+  favorites: [],
 
+  toggleFavorite: async (songId) => {
+    const isFav = get().favorites.some((f) => f.id === songId);
+    if (isFav) {
+      await removeFavorite(songId);
+    } else {
+      await addFavorite(songId);
+    }
+    const updatedFavs = await getFavoriteSongs();
+    set({ favorites: updatedFavs });
+  },
+  isFavorite: (songId) => {
+    const isFav = get().favorites.some((f) => f.id === songId);
+    return isFav;
+  },
+
+  // Load favorites
+  loadFavorites: async () => {
+    const favs = await getFavoriteSongs();
+    set({ favorites: favs });
+  },
+
+  setIsLoading: async (state: boolean) => {
+    set({ isLoading: state });
+  },
   loadPlaylists: async (type: "user" | "system" | "all" = "all") => {
     usePlayerStore.setState({ isLoading: true });
     try {

@@ -12,8 +12,6 @@ const PlaylistScreen = () => {
     (playlist) => playlist.id === playlistName
   );
 
-  console.log("playlist", playlist);
-
   if (!playlist) {
     console.warn(`Playlist ${playlistName} was not found!`);
 

@@ -28,26 +28,27 @@ const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
 const AddToPlaylist = () => {
   const { trackUri } = useLocalSearchParams<{ trackUri: string }>();
-  const isLoading = usePlayerStore((s) => s.isLoading);
-
-  const [isMounted, setIsMounted] = useState(false);
+  // const isLoading = usePlayerStore((s) => s.isLoading);
+  const isLoading = usePlaylistStore((s) => s.isLoading);
+  const setIsLoading = usePlaylistStore((s) => s.setIsLoading);
 
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
 
   useFocusEffect(
     useCallback(() => {
-      usePlayerStore.setState({ isLoading: true });
-      try {
-        (async () => {
+      const fetchPlaylists = async () => {
+        try {
+          setIsLoading(true);
           await loadPlaylists("user");
-        })();
-      } catch (error) {
-        console.log(error);
-      } finally {
-        usePlayerStore.setState({ isLoading: false });
-        setIsMounted(true);
-      }
-    }, [loadPlaylists])
+        } catch (error) {
+          console.error(error);
+        } finally {
+          setIsLoading(false);
+        }
+      };
+
+      fetchPlaylists();
+    }, [loadPlaylists, setIsLoading])
   );
 
   const getPlaylists = usePlaylistStore((s) => s.playlists);
@@ -116,7 +117,7 @@ const AddToPlaylist = () => {
     router.dismiss();
   };
 
-  if (!isMounted) return <LoadingScreen />;
+  if (isLoading) return <LoadingScreen />;
 
   return (
     <SafeAreaView

@@ -12,7 +12,7 @@ import ProgressBar from "@/components/ProgressBar";
 import SyncedLyrics from "@/components/SyncedLyrics";
 import { getSong } from "@/tools/db";
 import { fetchLyrics } from "@/tools/fetchLyrics";
-import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
 import React from "react";
@@ -40,7 +40,7 @@ export default function PlayingScreen() {
   const router = useRouter();
   const translateY = useSharedValue(0);
 
-  const toggleFavorite = usePlayerStore((s) => s.toggleFavorite);
+  const toggleFavorite = usePlaylistStore((s) => s.toggleFavorite);
 
   const setLyrics = usePlayerStore((s) => s.setLyrics);
 
@@ -65,7 +65,9 @@ export default function PlayingScreen() {
     await downloadFile(id, remoteUrl);
   };
 
-  const isFavorite = usePlayerStore((s) => s.isFavorite(currentSong?.id || ""));
+  const isFavorite = usePlaylistStore((s) =>
+    s.isFavorite(currentSong?.id || "")
+  );
 
   const handleFetchingLyrics = async () => {
     const lyrics = await fetchLyrics(currentSong, setLyrics);

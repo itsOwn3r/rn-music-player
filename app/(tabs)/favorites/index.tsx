@@ -1,5 +1,5 @@
 import TracksList from "@/components/TracksList";
-import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Ionicons } from "@expo/vector-icons";
 import { useBottomTabBarHeight } from "@react-navigation/bottom-tabs";
 import React from "react";
@@ -8,7 +8,7 @@ import { Text, View } from "react-native";
 const FavoritesScreen = () => {
   const files = usePlayerStore((s) => s.files);
 
-  const favorites = usePlayerStore((s) => s.favorites);
+  const favorites = usePlaylistStore((s) => s.favorites);
 
   const favoriteIds = favorites.map((item) => item.id);
 
