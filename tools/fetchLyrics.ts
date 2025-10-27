@@ -29,7 +29,7 @@ export const fetchLyrics = async (
         return lyrics;
       } else {
         setLyrics(track.uri, response.plainLyrics);
-        await addLyrics(track.id || track.uri, response.plainLyrics, " ");
+        await addLyrics(track.id || track.uri, response.plainLyrics, null);
         return response.plainLyrics;
       }
     } else {

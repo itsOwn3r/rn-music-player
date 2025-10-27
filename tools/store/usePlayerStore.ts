@@ -7,6 +7,7 @@ import {
   getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
+  getSongInfoFromDB,
   getSpeceficSystemPlaylist,
   incrementPlayCountInDB,
   removeFavorite,
@@ -127,6 +128,7 @@ type PlayerStore = {
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
   incrementPlayCount: (id: string | null | undefined) => void;
+  getSongInfo: (id: string) => Promise<Song | null>;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -824,6 +826,10 @@ export const usePlayerStore = create<PlayerStore>()(
               : song
           ),
         }));
+      },
+      getSongInfo: async (id: string) => {
+        const songInfo = await getSongInfoFromDB(id);
+        return songInfo;
       },
     }),
     {

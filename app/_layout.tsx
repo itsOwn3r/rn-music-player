@@ -66,6 +66,11 @@ export default function Layout() {
               animation: "slide_from_bottom", // smoother exit
             }}
           />
+
+          <Stack.Screen
+            name="info"
+            options={{ headerShown: false, headerTitleAlign: "center" }}
+          />
         </Stack>
         <StatusBar barStyle={"dark-content"} />
       </GestureHandlerRootView>

@@ -10,8 +10,7 @@ import {
 import PlayerVolumeBar from "@/components/PlayerVolumeBar";
 import ProgressBar from "@/components/ProgressBar";
 import SyncedLyrics from "@/components/SyncedLyrics";
-import { getSong } from "@/tools/db";
-import { fetchLyrics } from "@/tools/fetchLyrics";
+import { handleFetchingLyrics } from "@/tools/handleFetchingLyrics";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { useRouter } from "expo-router";
@@ -68,26 +67,6 @@ export default function PlayingScreen() {
   const isFavorite = usePlaylistStore((s) =>
     s.isFavorite(currentSong?.id || "")
   );
-
-  const handleFetchingLyrics = async () => {
-    const lyrics = await fetchLyrics(currentSong, setLyrics);
-    // router.reload();
-    const updated = await getSong(currentSong?.id || "");
-    if (!updated) return;
-
-    // Update the files array and the currentSong reference in the store in one atomic update
-    usePlayerStore.setState((prev: any) => {
-      const files = prev.files ?? [];
-      const newFiles = files.map((f: any) =>
-        f.id === updated.id ? updated : f
-      );
-      return {
-        files: newFiles,
-        currentSong:
-          prev.currentSong?.id === updated.id ? updated : prev.currentSong,
-      };
-    });
-  };
 
   // Pan gesture
   const panGesture = Gesture.Pan()
@@ -188,7 +167,9 @@ export default function PlayingScreen() {
                   <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center">
                     <Text className="text-white text-2xl">No Lyrics :(</Text>
                     <TouchableOpacity
-                      onPress={() => handleFetchingLyrics()}
+                      onPress={() =>
+                        handleFetchingLyrics({ currentSong, setLyrics })
+                      }
                       activeOpacity={0.8}
                       className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
                       // style={{ opacity: isActive === false ? 0.5 : 1 }}
@@ -249,10 +230,15 @@ export default function PlayingScreen() {
               </TouchableOpacity>
 
               <TouchableOpacity
-                onPress={() => {}}
+                onPress={() =>
+                  router.push({
+                    pathname: "/info/[id]",
+                    params: { id: currentSong?.id ?? "" },
+                  })
+                }
                 className="text-white size-12 items-center flex justify-center"
               >
-                <MaterialIcons color="white" name="timeline" size={24} />
+                <MaterialIcons color="white" name="info-outline" size={24} />
               </TouchableOpacity>
 
               <TouchableOpacity

@@ -130,6 +130,12 @@ export async function getAllSongs(): Promise<Song[]> {
   return rows as Song[];
 }
 
+export async function getSongInfoFromDB(id: string): Promise<Song | null> {
+  if (!id) return null;
+  const row = await db.getFirstAsync(`SELECT * FROM songs WHERE id = ?`, [id]);
+  return row ? (row as Song) : null;
+}
+
 export async function removeSong(id: string) {
   await db.runAsync(`DELETE FROM songs WHERE id = ?`, [id]);
 }
@@ -141,7 +147,7 @@ export async function clearSongs() {
 export async function addLyrics(
   songId: string,
   lyrics: string,
-  syncedLyrics: string
+  syncedLyrics: string | null
 ) {
   await db.runAsync(
     "UPDATE songs SET lyrics = ?, syncedLyrics = ? WHERE id = ?",
