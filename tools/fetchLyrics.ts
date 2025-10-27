@@ -3,7 +3,7 @@ import { addLyrics } from "./db";
 
 export const fetchLyrics = async (
   track: Song | null,
-  setLyrics: (uri: string, plainLyrics: string, syncedLyrics?: string) => void
+  setLyrics: (id: string, plainLyrics: string, syncedLyrics?: string) => void
 ) => {
   if (!track) {
     return null;
@@ -23,12 +23,12 @@ export const fetchLyrics = async (
       console.log("Set lyrics for ", track.title);
 
       if (response.plainLyrics && response.syncedLyrics) {
-        setLyrics(track.uri, response.plainLyrics, response.syncedLyrics);
+        setLyrics(track.id || "", response.plainLyrics, response.syncedLyrics);
         const lyrics = response.syncedLyrics || response.plainLyrics;
         await addLyrics(track.id || track.uri, response.plainLyrics, lyrics);
         return lyrics;
       } else {
-        setLyrics(track.uri, response.plainLyrics);
+        setLyrics(track.id || "", response.plainLyrics);
         await addLyrics(track.id || track.uri, response.plainLyrics, null);
         return response.plainLyrics;
       }

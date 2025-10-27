@@ -1,6 +1,7 @@
 import { songs as staticSongs } from "@/assets/data/playlists";
 import {
   addFavorite,
+  addLyrics,
   addSong,
   addSongToPlaylist,
   createPlaylist,
@@ -14,6 +15,7 @@ import {
   removePlaylist,
   removeSongFromPlaylist,
   setLocalURI,
+  updateSongSyncedLyrics,
 } from "@/tools/db";
 import {
   displayNameFromSafUri,
@@ -123,12 +125,13 @@ type PlayerStore = {
   ) => Promise<void>;
   setFiles: (files: Song[]) => void;
   setAllFiles: (files: Song[]) => void;
-  setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) => void;
+  setLyrics: (id: string, lyrics: string, syncedLyrics?: string) => void;
 
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
   incrementPlayCount: (id: string | null | undefined) => void;
   getSongInfo: (id: string) => Promise<Song | null>;
+  updateSongSyncedLyrics: (id: string, syncedLyrics: string) => void;
 };
 
 export const usePlayerStore = create<PlayerStore>()(
@@ -799,10 +802,16 @@ export const usePlayerStore = create<PlayerStore>()(
           (engine as any).setVolume(val);
         }
       },
-      setLyrics: (uri: string, lyrics: string, syncedLyrics?: string) =>
+      setLyrics: async (id: string, lyrics: string, syncedLyrics?: string) => {
+        if (!id) {
+          return null;
+        }
+
+        await addLyrics(id, lyrics, syncedLyrics ? syncedLyrics : null);
+
         set((state) => ({
           files: state.files.map((f) =>
-            f.uri === uri
+            f.id === id
               ? {
                   ...f,
                   lyrics,
@@ -810,7 +819,8 @@ export const usePlayerStore = create<PlayerStore>()(
                 }
               : f
           ),
-        })),
+        }));
+      },
       incrementPlayCount: (id: string | null | undefined) => {
         if (!id) {
           return;
@@ -830,6 +840,9 @@ export const usePlayerStore = create<PlayerStore>()(
       getSongInfo: async (id: string) => {
         const songInfo = await getSongInfoFromDB(id);
         return songInfo;
+      },
+      updateSongSyncedLyrics: async (id: string, syncedLyrics: string) => {
+        await updateSongSyncedLyrics(id, syncedLyrics);
       },
     }),
     {

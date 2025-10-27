@@ -8,7 +8,7 @@ export const handleFetchingLyrics = async ({
   setLyrics,
 }: {
   currentSong: Song | null;
-  setLyrics: (uri: string, plainLyrics: string, syncedLyrics?: string) => void;
+  setLyrics: (id: string, plainLyrics: string, syncedLyrics?: string) => void;
 }) => {
   if (!currentSong) {
     return null;

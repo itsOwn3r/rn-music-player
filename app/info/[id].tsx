@@ -4,7 +4,7 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -94,6 +94,8 @@ const SongInfoScreen = () => {
   const setLyrics = usePlayerStore((s) => s.setLyrics);
 
   const getSongInfo = usePlayerStore((s) => s.getSongInfo);
+
+  const router = useRouter();
 
   const [song, setSong] = useState<Song | null>(null);
   const [loading, setLoading] = useState(true);
@@ -221,15 +223,31 @@ const SongInfoScreen = () => {
           <AnimatedButton
             color="green"
             label={!!song.lyrics ? "Edit Lyrics?" : "Add Lyrics"}
+            onPress={() =>
+              router.push({
+                pathname: "/lyrics/edit/[id]",
+                params: { id: song.id },
+              })
+            }
           />
 
-          {!song.syncedLyrics && (
-            <AnimatedButton
-              color="cyan"
-              disabled={!song.lyrics}
-              label={!!song.lyrics ? "Sync Lyrics" : "Fetch Lyrics first"}
-            />
-          )}
+          <AnimatedButton
+            color="cyan"
+            disabled={!song.lyrics}
+            label={
+              song.lyrics
+                ? song.syncedLyrics
+                  ? "Edit Synced Lyrics"
+                  : "Sync Lyrics"
+                : "Fetch/Add Lyrics first"
+            }
+            onPress={() =>
+              router.push({
+                pathname: "/lyrics/sync/[id]",
+                params: { id: song.id },
+              })
+            }
+          />
 
           <AnimatedButton
             color="green"

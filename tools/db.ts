@@ -167,6 +167,20 @@ export async function incrementPlayCountInDB(
   );
 }
 
+export async function updateSongSyncedLyrics(
+  id: string,
+  syncedLyrics: string
+): Promise<void> {
+  if (!id) {
+    return;
+  }
+
+  await db.runAsync(`UPDATE songs SET syncedLyrics = ? WHERE id = ?`, [
+    syncedLyrics,
+    id,
+  ]);
+}
+
 export async function createPlaylist(name: string, description?: string) {
   const id = uuid.v4().toString().slice(-8);
   const now = Date.now();
