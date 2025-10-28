@@ -7,6 +7,7 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initDB } from "@/tools/db";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
+import { Toaster } from "sonner-native";
 import "../global.css";
 
 export default function Layout() {
@@ -71,8 +72,16 @@ export default function Layout() {
             name="info"
             options={{ headerShown: false, headerTitleAlign: "center" }}
           />
+
+          <Stack.Screen
+            name="lyrics"
+            options={{
+              headerShown: false,
+            }}
+          />
         </Stack>
         <StatusBar barStyle={"dark-content"} />
+        <Toaster position="top-center" richColors />
       </GestureHandlerRootView>
     </SafeAreaProvider>
   );

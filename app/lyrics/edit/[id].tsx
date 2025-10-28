@@ -1,5 +1,6 @@
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
+import { MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
@@ -10,6 +11,7 @@ import {
   ScrollView,
   Text,
   TextInput,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
@@ -20,6 +22,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AnimatedButton = ({
   label,
@@ -118,7 +121,17 @@ const AddLyricsScreen = () => {
     );
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black b z-50">
+      {/* Header */}
+      <View className="flex-row items-center justify-between px-5 pt-3 z-50">
+        <TouchableOpacity onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={26} color="#fff" />
+        </TouchableOpacity>
+        <Text className="text-white text-lg font-bold">Edit Lyrics</Text>
+        <TouchableOpacity onPress={handleSave}>
+          <MaterialIcons name="save-alt" size={26} color="#22c55e" />
+        </TouchableOpacity>
+      </View>
       {/* Background blur */}
       {song.coverArt && (
         <Image
@@ -174,7 +187,7 @@ const AddLyricsScreen = () => {
         </View>
 
         {/* Buttons */}
-        <View className="mt-8 px-8 space-y-4">
+        <View className="px-8 space-y-4 gap-y-4 mt-12">
           <AnimatedButton
             color="green"
             label="💾 Save Lyrics"
@@ -187,7 +200,7 @@ const AddLyricsScreen = () => {
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

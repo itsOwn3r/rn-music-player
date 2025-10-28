@@ -44,6 +44,7 @@ export default function SyncLyricsScreen() {
 
       const info = await getSongInfo(id);
       setSong(info);
+      handleChangeSongPosition(0);
 
       if (info?.syncedLyrics) {
         // Parse LRC format into { index, time, text }
@@ -70,7 +71,7 @@ export default function SyncLyricsScreen() {
         setSynced([]); // no synced timestamps yet
       }
     })();
-  }, [id]);
+  }, [getSongInfo, handleChangeSongPosition, id]);
 
   const handleTapLine = (index: number) => {
     const text = lyrics[index];

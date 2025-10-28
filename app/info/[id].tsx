@@ -226,7 +226,7 @@ const SongInfoScreen = () => {
             onPress={() =>
               router.push({
                 pathname: "/lyrics/edit/[id]",
-                params: { id: song.id },
+                params: { id: song.id || "" },
               })
             }
           />
@@ -244,7 +244,7 @@ const SongInfoScreen = () => {
             onPress={() =>
               router.push({
                 pathname: "/lyrics/sync/[id]",
-                params: { id: song.id },
+                params: { id: song.id || "" },
               })
             }
           />
