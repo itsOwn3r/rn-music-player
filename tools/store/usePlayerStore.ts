@@ -36,6 +36,7 @@ import { Buffer } from "buffer";
 import * as FileSystem from "expo-file-system";
 import { Platform } from "react-native";
 import uuid from "react-native-uuid";
+import { toast } from "sonner-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { downloadSongWithSAF } from "../downloadManager";
@@ -803,12 +804,12 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
       setLyrics: async (id: string, lyrics: string, syncedLyrics?: string) => {
-        if (!id) {
+        if (!id || (lyrics && syncedLyrics)) {
           return null;
         }
 
         await addLyrics(id, lyrics, syncedLyrics ? syncedLyrics : null);
-
+        toast.success(`Lyrics added!`);
         set((state) => ({
           files: state.files.map((f) =>
             f.id === id
@@ -843,6 +844,7 @@ export const usePlayerStore = create<PlayerStore>()(
       },
       updateSongSyncedLyrics: async (id: string, syncedLyrics: string) => {
         await updateSongSyncedLyrics(id, syncedLyrics);
+        toast.success(`Synced Lyrics added!`);
       },
     }),
     {
@@ -899,7 +901,9 @@ export const usePlaylistStore = create<{
     const isFav = get().favorites.some((f) => f.id === songId);
     if (isFav) {
       await removeFavorite(songId);
+      toast.success(`Track Deleted from Favorites!`);
     } else {
+      toast.success(`Track added to Favorites!`);
       await addFavorite(songId);
     }
     const updatedFavs = await getFavoriteSongs();
@@ -934,11 +938,13 @@ export const usePlaylistStore = create<{
   addPlaylist: async (name, description) => {
     await createPlaylist(name, description);
     await get().loadPlaylists("all");
+    toast.success(`Playlists Created: ${name}`);
   },
 
   removePlaylist: async (id) => {
     await removePlaylist(id);
     await get().loadPlaylists("all");
+    toast.success(`Playlists Deleted!`);
   },
 
   addTrackToPlaylist: async (playlistId, songId) => {
