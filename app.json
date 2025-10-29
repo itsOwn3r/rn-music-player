@@ -39,6 +39,14 @@
       "favicon": "./assets/images/favicon.png"
     },
     "plugins": [
+                [
+            "expo-build-properties",
+            {
+              "android": {
+                "kotlinVersion": "1.9.25" // Replace with your desired Kotlin version
+              }
+            }
+          ],
       [
         "expo-navigation-bar",
         {
