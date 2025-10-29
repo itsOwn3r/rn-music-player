@@ -1,4 +1,3 @@
-import { songs as staticSongs } from "@/assets/data/playlists";
 import {
   addFavorite,
   addLyrics,
@@ -17,24 +16,10 @@ import {
   setLocalURI,
   updateSongSyncedLyrics,
 } from "@/tools/db";
-import {
-  displayNameFromSafUri,
-  fileNameFromSafUri,
-} from "@/tools/fileNameFromSAF";
-import { ensureCacheDir, looksLikeAudio } from "@/tools/fileUtils";
-import { readTagsForContentUri } from "@/tools/metadata";
 import saveSongMetadata from "@/tools/saveCurrnetSong";
-import {
-  getCachedMetadata,
-  getCachedMetadataLoose,
-  setCachedMetadata,
-  setCachedMetadataLoose,
-} from "@/tools/setAndGetCache";
 import { Playlist, Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
-import * as FileSystem from "expo-file-system";
-import { Platform } from "react-native";
 import uuid from "react-native-uuid";
 import { toast } from "sonner-native";
 import { create } from "zustand";
@@ -83,7 +68,7 @@ type PlayerStore = {
   setProgress: (position: number, duration: number) => void;
 
   // actions
-  pickFolder: () => Promise<void>;
+  // pickFolder: () => Promise<void>;
   playFile: (file: Song, duration?: number) => Promise<void>;
   playSong: (
     index: number,
@@ -180,11 +165,9 @@ export const usePlayerStore = create<PlayerStore>()(
         // Merge with persisted lyrics/syncedLyrics if available
         const mergedFiles = files.map((f) => {
           const existing = prevFiles.find((pf) => pf.uri === f.uri);
-          const staticMatch = staticSongs.find((s) => s.uri === f.uri);
 
           return {
             ...f,
-            ...(staticMatch ?? {}), // merge static info if available
             ...(existing
               ? {
                   lyrics: existing.lyrics ?? null,
@@ -233,206 +216,206 @@ export const usePlayerStore = create<PlayerStore>()(
       setProgress: (position, duration) =>
         set({ position, duration: duration }),
 
-      pickFolder: async () => {
-        set({ isLoading: true });
-        try {
-          if (Platform.OS !== "android") {
-            throw new Error("Folder picking is Android-only.");
-          }
+      // pickFolder: async () => {
+      //   set({ isLoading: true });
+      //   try {
+      //     if (Platform.OS !== "android") {
+      //       throw new Error("Folder picking is Android-only.");
+      //     }
 
-          let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
-          if (!directoryUri) {
-            const perm =
-              await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-            if (!perm.granted || !perm.directoryUri)
-              throw new Error("Permission not granted");
-            directoryUri = perm.directoryUri;
-            await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
-          }
+      //     let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
+      //     if (!directoryUri) {
+      //       const perm =
+      //         await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
+      //       if (!perm.granted || !perm.directoryUri)
+      //         throw new Error("Permission not granted");
+      //       directoryUri = perm.directoryUri;
+      //       await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
+      //     }
 
-          const entries =
-            await FileSystem.StorageAccessFramework.readDirectoryAsync(
-              directoryUri
-            );
-          const audioUris = entries.filter(looksLikeAudio);
-          if (audioUris.length === 0) {
-            set({ files: [], currentSongIndex: -1, isLoading: false });
-            return;
-          }
+      //     const entries =
+      //       await FileSystem.StorageAccessFramework.readDirectoryAsync(
+      //         directoryUri
+      //       );
+      //     const audioUris = entries.filter(looksLikeAudio);
+      //     if (audioUris.length === 0) {
+      //       set({ files: [], currentSongIndex: -1, isLoading: false });
+      //       return;
+      //     }
 
-          const cacheDir = await ensureCacheDir();
+      //     const cacheDir = await ensureCacheDir();
 
-          const lightweightList: Song[] = audioUris.map((uri, index) => {
-            const filename = uri.split("/").pop() ?? "Unknown.mp3";
+      //     const lightweightList: Song[] = audioUris.map((uri, index) => {
+      //       const filename = uri.split("/").pop() ?? "Unknown.mp3";
 
-            // Check in static songs
-            const existing = staticSongs.find((s) => s.uri === uri);
+      //       // Check in static songs
+      //       const existing = staticSongs.find((s) => s.uri === uri);
 
-            if (existing) {
-              // Use cached/static song, enforce correct index
-              return { ...existing, index };
-            }
+      //       if (existing) {
+      //         // Use cached/static song, enforce correct index
+      //         return { ...existing, index };
+      //       }
 
-            // Otherwise create a lightweight placeholder
-            return {
-              id: uuid.v4().toString().slice(-8),
-              uri,
-              filename: fileNameFromSafUri(uri) ?? filename,
-              title:
-                displayNameFromSafUri(uri) ??
-                decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
-              artist: null,
-              album: null,
-              coverArt: null,
-              index,
-              comment: null,
-              date: null,
-              duration: 0,
-              year: null,
-              lyrics: null,
-              syncedLyrics: null,
-            };
-          });
+      //       // Otherwise create a lightweight placeholder
+      //       return {
+      //         id: uuid.v4().toString().slice(-8),
+      //         uri,
+      //         filename: fileNameFromSafUri(uri) ?? filename,
+      //         title:
+      //           displayNameFromSafUri(uri) ??
+      //           decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
+      //         artist: null,
+      //         album: null,
+      //         coverArt: null,
+      //         index,
+      //         comment: null,
+      //         date: null,
+      //         duration: 0,
+      //         year: null,
+      //         lyrics: null,
+      //         syncedLyrics: null,
+      //       };
+      //     });
 
-          // const sortedList = lightweightList.sort((a, b) =>
-          //   a.date > b.date
-          // );
+      //     // const sortedList = lightweightList.sort((a, b) =>
+      //     //   a.date > b.date
+      //     // );
 
-          const sortedList = lightweightList.sort(
-            (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
-          );
+      //     const sortedList = lightweightList.sort(
+      //       (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
+      //     );
 
-          // Merge persisted lyrics/syncedLyrics into the freshly scanned list
-          const existingFiles = get().files ?? [];
+      //     // Merge persisted lyrics/syncedLyrics into the freshly scanned list
+      //     const existingFiles = get().files ?? [];
 
-          const mergedList: Song[] = sortedList.map((song) => {
-            const existing = existingFiles.find((f) => f.uri === song.uri);
-            const staticMatch = staticSongs.find((s) => s.uri === song.uri);
+      //     const mergedList: Song[] = sortedList.map((song) => {
+      //       const existing = existingFiles.find((f) => f.uri === song.uri);
+      //       const staticMatch = staticSongs.find((s) => s.uri === song.uri);
 
-            return {
-              ...song,
-              ...(staticMatch ?? {}), // keep static metadata if present
-              // preserve previously-saved lyrics if available, otherwise keep whatever came from the scan (or null)
-              lyrics: existing?.lyrics ?? song.lyrics ?? null,
-              syncedLyrics: existing?.syncedLyrics ?? song.syncedLyrics ?? null,
-            };
-          });
+      //       return {
+      //         ...song,
+      //         ...(staticMatch ?? {}), // keep static metadata if present
+      //         // preserve previously-saved lyrics if available, otherwise keep whatever came from the scan (or null)
+      //         lyrics: existing?.lyrics ?? song.lyrics ?? null,
+      //         syncedLyrics: existing?.syncedLyrics ?? song.syncedLyrics ?? null,
+      //       };
+      //     });
 
-          for (const song of mergedList) {
-            await addSong(song);
-          }
+      //     for (const song of mergedList) {
+      //       await addSong(song);
+      //     }
 
-          // ✅ Update Zustand
-          const songs = await getAllSongs();
-          usePlayerStore.setState({ files: songs });
+      //     // ✅ Update Zustand
+      //     const songs = await getAllSongs();
+      //     usePlayerStore.setState({ files: songs });
 
-          const lastSong = await AsyncStorage.getItem("song");
-          if (lastSong) {
-            const lastSongObject: Song = JSON.parse(lastSong);
-            set({
-              currentSongIndex: lastSongObject.index,
-              currentSong: lastSongObject,
-            });
-          } else {
-            set({ currentSongIndex: 0, currentSong: sortedList[0] });
-          }
+      //     const lastSong = await AsyncStorage.getItem("song");
+      //     if (lastSong) {
+      //       const lastSongObject: Song = JSON.parse(lastSong);
+      //       set({
+      //         currentSongIndex: lastSongObject.index,
+      //         currentSong: lastSongObject,
+      //       });
+      //     } else {
+      //       set({ currentSongIndex: 0, currentSong: sortedList[0] });
+      //     }
 
-          const firstChunk = sortedList.slice(0, 40);
-          const rest = sortedList.slice(40);
+      //     const firstChunk = sortedList.slice(0, 40);
+      //     const rest = sortedList.slice(40);
 
-          const inflight = new Set<string>();
-          const fetched = new Set<string>();
+      //     const inflight = new Set<string>();
+      //     const fetched = new Set<string>();
 
-          const fetchOne = async (song: Song, idx: number) => {
-            if (fetched.has(song.uri) || inflight.has(song.uri)) return;
-            inflight.add(song.uri);
-            try {
-              const info = await FileSystem.getInfoAsync(song.uri as any);
-              const modificationTime =
-                info.exists && "modificationTime" in info
-                  ? info.modificationTime
-                  : undefined;
+      //     const fetchOne = async (song: Song, idx: number) => {
+      //       if (fetched.has(song.uri) || inflight.has(song.uri)) return;
+      //       inflight.add(song.uri);
+      //       try {
+      //         const info = await FileSystem.getInfoAsync(song.uri as any);
+      //         const modificationTime =
+      //           info.exists && "modificationTime" in info
+      //             ? info.modificationTime
+      //             : undefined;
 
-              const cached =
-                (modificationTime !== undefined &&
-                  (await getCachedMetadata(song.uri, modificationTime))) ||
-                (await getCachedMetadataLoose(song.uri));
+      //         const cached =
+      //           (modificationTime !== undefined &&
+      //             (await getCachedMetadata(song.uri, modificationTime))) ||
+      //           (await getCachedMetadataLoose(song.uri));
 
-              if (cached) {
-                set((prev) => ({
-                  files: prev.files.map((f) =>
-                    f.uri === song.uri
-                      ? {
-                          ...f,
-                          ...cached,
-                          index: idx,
-                          lyrics: f.lyrics ?? cached.lyrics ?? null,
-                          syncedLyrics:
-                            f.syncedLyrics ?? cached.syncedLyrics ?? null,
-                        }
-                      : f
-                  ),
-                }));
-                fetched.add(song.uri);
-                return;
-              }
+      //         if (cached) {
+      //           set((prev) => ({
+      //             files: prev.files.map((f) =>
+      //               f.uri === song.uri
+      //                 ? {
+      //                     ...f,
+      //                     ...cached,
+      //                     index: idx,
+      //                     lyrics: f.lyrics ?? cached.lyrics ?? null,
+      //                     syncedLyrics:
+      //                       f.syncedLyrics ?? cached.syncedLyrics ?? null,
+      //                   }
+      //                 : f
+      //             ),
+      //           }));
+      //           fetched.add(song.uri);
+      //           return;
+      //         }
 
-              // Force read metadata if not cached
-              const tags = await readTagsForContentUri(song.uri, cacheDir);
+      //         // Force read metadata if not cached
+      //         const tags = await readTagsForContentUri(song.uri, cacheDir);
 
-              const merged: Song = { ...song, ...tags, index: idx };
+      //         const merged: Song = { ...song, ...tags, index: idx };
 
-              if (modificationTime) {
-                await setCachedMetadata(song.uri, modificationTime, merged);
-              } else {
-                await setCachedMetadataLoose(song.uri, merged);
-              }
+      //         if (modificationTime) {
+      //           await setCachedMetadata(song.uri, modificationTime, merged);
+      //         } else {
+      //           await setCachedMetadataLoose(song.uri, merged);
+      //         }
 
-              set((prev) => ({
-                files: prev.files.map((f) =>
-                  f.uri === song.uri
-                    ? {
-                        ...f,
-                        ...tags,
-                        index: idx,
-                        lyrics: f.lyrics ?? tags.lyrics ?? null,
-                        syncedLyrics:
-                          f.syncedLyrics ?? tags.syncedLyrics ?? null,
-                      }
-                    : f
-                ),
-              }));
-              fetched.add(song.uri);
-            } catch (err) {
-              console.warn("Metadata parse failed:", err);
-            } finally {
-              inflight.delete(song.uri);
-            }
-          };
+      //         set((prev) => ({
+      //           files: prev.files.map((f) =>
+      //             f.uri === song.uri
+      //               ? {
+      //                   ...f,
+      //                   ...tags,
+      //                   index: idx,
+      //                   lyrics: f.lyrics ?? tags.lyrics ?? null,
+      //                   syncedLyrics:
+      //                     f.syncedLyrics ?? tags.syncedLyrics ?? null,
+      //                 }
+      //               : f
+      //           ),
+      //         }));
+      //         fetched.add(song.uri);
+      //       } catch (err) {
+      //         console.warn("Metadata parse failed:", err);
+      //       } finally {
+      //         inflight.delete(song.uri);
+      //       }
+      //     };
 
-          const runPool = (list: Song[], concurrency: number) => {
-            let i = 0;
-            const worker = async () => {
-              while (i < list.length) {
-                const item = list[i++];
-                await fetchOne(item, item.index);
-              }
-            };
+      //     const runPool = (list: Song[], concurrency: number) => {
+      //       let i = 0;
+      //       const worker = async () => {
+      //         while (i < list.length) {
+      //           const item = list[i++];
+      //           await fetchOne(item, item.index);
+      //         }
+      //       };
 
-            Array.from({ length: concurrency }).forEach(() => {
-              worker().catch((e) => console.warn("Metadata worker error:", e));
-            });
-          };
+      //       Array.from({ length: concurrency }).forEach(() => {
+      //         worker().catch((e) => console.warn("Metadata worker error:", e));
+      //       });
+      //     };
 
-          runPool(firstChunk, 4);
-          runPool(rest, 2);
-        } catch (err) {
-          console.error("pickFolder error:", err);
-          set({ isLoading: false });
-        } finally {
-          set({ isLoading: false });
-        }
-      },
+      //     runPool(firstChunk, 4);
+      //     runPool(rest, 2);
+      //   } catch (err) {
+      //     console.error("pickFolder error:", err);
+      //     set({ isLoading: false });
+      //   } finally {
+      //     set({ isLoading: false });
+      //   }
+      // },
       playFile: async (file: Song, duration?: number) => {
         const { engine, incrementPlayCount } = get();
         if (!engine) return;
