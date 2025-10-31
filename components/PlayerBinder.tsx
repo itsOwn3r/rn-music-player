@@ -1,8 +1,13 @@
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { syncFolder } from "@/tools/syncFolder";
-import { useAudioPlayer, useAudioPlayerStatus } from "expo-audio";
+import {
+  setAudioModeAsync,
+  useAudioPlayer,
+  useAudioPlayerStatus,
+} from "expo-audio";
 import { useEffect, useRef } from "react";
 import { AppState } from "react-native";
+import { toast } from "sonner-native";
 
 export default function PlayerBinder() {
   const engine = useAudioPlayer();
@@ -40,7 +45,7 @@ export default function PlayerBinder() {
     const initialize = async () => {
       try {
         // const folderUri = await AsyncStorage.getItem("musicDirectoryUri");
-
+        await new Promise((resolve) => setTimeout(resolve, 1000));
         await syncFolder();
 
         await loadPlaylists("all");
@@ -51,6 +56,7 @@ export default function PlayerBinder() {
           async (state) => {
             if (state === "active") {
               console.log("🔄 App resumed, syncing folder...");
+              await new Promise((resolve) => setTimeout(resolve, 1000));
               await syncFolder();
             }
           }
@@ -65,7 +71,7 @@ export default function PlayerBinder() {
     return () => {
       appStateSubscription?.remove?.();
     };
-  }, []);
+  }, [loadPlaylists]);
 
   const frameRef = useRef<number | null>(null);
 
@@ -74,6 +80,26 @@ export default function PlayerBinder() {
   useEffect(() => {
     engine.volume = volume;
   }, [engine, volume]);
+
+  async function configureAudioMode() {
+    try {
+      await setAudioModeAsync({
+        shouldPlayInBackground: true,
+        playsInSilentMode: true,
+        interruptionMode: "mixWithOthers",
+        interruptionModeAndroid: "duckOthers",
+        // shouldDuckAndroid: true,
+        // playThroughEarpieceAndroid: false,
+      });
+    } catch (err) {
+      toast.warning(`Failed to configure audio mode: ${err}`);
+      console.warn("Failed to configure audio mode", err);
+    }
+  }
+
+  useEffect(() => {
+    configureAudioMode();
+  }, []);
 
   // useEffect(() => {
   //   rehydrateSettings();

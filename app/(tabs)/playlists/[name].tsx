@@ -2,9 +2,11 @@ import LoadingScreen from "@/components/LoadingScreen";
 import { PlaylistTracksList } from "@/components/PlaylistTracksList";
 import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Playlist } from "@/types/types";
-import { Redirect, useLocalSearchParams } from "expo-router";
+import { MaterialIcons } from "@expo/vector-icons";
+import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
-import { View } from "react-native";
+import { Text, TouchableOpacity, View } from "react-native";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const PlaylistScreen = () => {
   const { name: playlistId } = useLocalSearchParams<{ name: string }>();
@@ -12,6 +14,8 @@ const PlaylistScreen = () => {
   const getSpeceficSystemPlaylist = usePlaylistStore(
     (s) => s.getSpeceficSystemPlaylist
   );
+
+  const router = useRouter();
 
   const [playlist, setPlaylist] = useState<Playlist | null | undefined>(
     undefined
@@ -53,9 +57,18 @@ const PlaylistScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-black px-1">
+    <SafeAreaView className="flex-1 bg-black px-1">
+      <View className="flex-row items-center justify-between px-5 py-3 z-50">
+        <TouchableOpacity onPress={() => router.back()}>
+          <MaterialIcons name="arrow-back" size={26} color="#ffffff" />
+        </TouchableOpacity>
+        <Text className="text-white text-2xl font-bold">{playlist.name}</Text>
+        <TouchableOpacity>
+          <MaterialIcons name="share" size={26} color="#ffffff" />
+        </TouchableOpacity>
+      </View>
       <PlaylistTracksList playlist={playlist} playlistName={playlist.name} />
-    </View>
+    </SafeAreaView>
   );
 };
 

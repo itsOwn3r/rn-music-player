@@ -7,21 +7,34 @@ import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initDB } from "@/tools/db";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
-import { Toaster } from "sonner-native";
+import { toast, Toaster } from "sonner-native";
 import "../global.css";
 
 export default function Layout() {
-  const { loadLibrary } = usePlayerStore();
+  const loadLibrary = usePlayerStore((s) => s.loadLibrary);
   const loadFavorites = usePlaylistStore((s) => s.loadFavorites);
 
   useEffect(() => {
-    initDB()
-      .then(() => console.log("✅ Database ready"))
-      .catch((err) => console.error("❌ DB init error:", err));
-    (async () => {
-      await loadLibrary();
-      await loadFavorites();
-    })();
+    async function initialize() {
+      try {
+        await initDB();
+      } catch (error) {
+        console.error("Error initializing database:", error);
+        toast.error(`Error initializing database: ${error}`);
+        // Handle the error appropriately (e.g., display an error message)
+      }
+    }
+
+    initialize();
+  }, []);
+
+  useEffect(() => {
+    requestAnimationFrame(() => {
+      (async () => {
+        await loadLibrary();
+        await loadFavorites();
+      })();
+    });
   }, [loadFavorites, loadLibrary]);
 
   return (

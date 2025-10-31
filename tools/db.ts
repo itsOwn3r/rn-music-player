@@ -1,96 +1,113 @@
 // tools/db.ts
 import { Playlist, Song } from "@/types/types";
-import * as SQLite from "expo-sqlite";
+import { openDatabaseAsync, SQLiteDatabase } from "expo-sqlite";
 import uuid from "react-native-uuid";
+import { toast } from "sonner-native";
 
-export const db = SQLite.openDatabaseSync("music.db");
+let db: SQLiteDatabase | null = null;
 
 export async function initDB() {
-  await db.execAsync(`
-    PRAGMA foreign_keys = ON;
+  try {
+    db = await openDatabaseAsync("lor.db", { useNewConnection: true });
 
-    CREATE TABLE IF NOT EXISTS songs (
-      id TEXT PRIMARY KEY NOT NULL,
-      uri TEXT UNIQUE,
-      localUri TEXT DEFAULT NULL,
-      filename TEXT,
-      title TEXT,
-      artist TEXT,
-      album TEXT,
-      duration REAL,
-      coverArt TEXT,
-      size INTEGER,
-      date INTEGER,
-      year INTEGER,
-      lyrics TEXT,
-      syncedLyrics TEXT,
-      playCount INTEGER DEFAULT 0,
-      lastPlayedAt INTEGER DEFAULT 0
-    );
+    await db.execAsync(`
+      PRAGMA foreign_keys = ON;
 
-    CREATE TABLE IF NOT EXISTS playlists (
-      id TEXT PRIMARY KEY NOT NULL,
-      name TEXT NOT NULL,
-      description TEXT,
-      coverArt TEXT,
-      type TEXT DEFAULT 'user',
-      createdAt INTEGER,
-      updatedAt INTEGER
-    );
-
-    CREATE TABLE IF NOT EXISTS playlist_songs (
-      playlistId TEXT REFERENCES playlists(id) ON DELETE CASCADE,
-      songId TEXT REFERENCES songs(id) ON DELETE CASCADE,
-      PRIMARY KEY (playlistId, songId)
-    );
-
-  `);
-
-  const now = Date.now();
-
-  const systemPlaylists = [
-    {
-      id: "downloads",
-      name: "Downloads",
-      description: "Downloaded songs",
-      type: "user",
-    },
-    {
-      id: "recent",
-      name: "Recently Added",
-      description: "Songs you’ve recently added",
-      type: "system",
-    },
-    {
-      id: "favorites",
-      name: "Favorites",
-      description: "Your favorite songs collection",
-      type: "user",
-    },
-    {
-      id: "most-played",
-      name: "Most Played",
-      description: "Your top 50 most listened songs",
-      type: "system",
-    },
-  ];
-
-  for (const { id, name, description, type } of systemPlaylists) {
-    const exists = await db.getFirstAsync(
-      `SELECT id FROM playlists WHERE id = ?`,
-      [id]
-    );
-    if (!exists) {
-      await db.runAsync(
-        `INSERT INTO playlists (id, name, description, type, createdAt, updatedAt)
-       VALUES (?, ?, ?, ?, ?, ?)`,
-        [id, name, description, type, now, now]
+      CREATE TABLE IF NOT EXISTS songs (
+        id TEXT PRIMARY KEY NOT NULL,
+        uri TEXT UNIQUE,
+        localUri TEXT DEFAULT NULL,
+        filename TEXT,
+        title TEXT,
+        artist TEXT,
+        album TEXT,
+        duration REAL,
+        coverArt TEXT,
+        size INTEGER,
+        date INTEGER,
+        year INTEGER,
+        lyrics TEXT,
+        syncedLyrics TEXT,
+        playCount INTEGER DEFAULT 0,
+        lastPlayedAt INTEGER DEFAULT 0
       );
+
+      CREATE TABLE IF NOT EXISTS playlists (
+        id TEXT PRIMARY KEY NOT NULL,
+        name TEXT NOT NULL,
+        description TEXT,
+        coverArt TEXT,
+        type TEXT DEFAULT 'user',
+        createdAt INTEGER,
+        updatedAt INTEGER
+      );
+
+      CREATE TABLE IF NOT EXISTS playlist_songs (
+        playlistId TEXT REFERENCES playlists(id) ON DELETE CASCADE,
+        songId TEXT REFERENCES songs(id) ON DELETE CASCADE,
+        PRIMARY KEY (playlistId, songId)
+      );
+    `);
+
+    const now = Date.now();
+
+    const systemPlaylists = [
+      {
+        id: "downloads",
+        name: "Downloads",
+        description: "Downloaded songs",
+        type: "user",
+      },
+      {
+        id: "recent",
+        name: "Recently Added",
+        description: "Songs you’ve recently added",
+        type: "system",
+      },
+      {
+        id: "favorites",
+        name: "Favorites",
+        description: "Your favorite songs collection",
+        type: "user",
+      },
+      {
+        id: "most-played",
+        name: "Most Played",
+        description: "Your top 50 most listened songs",
+        type: "system",
+      },
+    ];
+
+    for (const { id, name, description, type } of systemPlaylists) {
+      const exists = await db.getFirstAsync(
+        `SELECT id FROM playlists WHERE id = ?`,
+        [id]
+      );
+      if (!exists) {
+        await db.runAsync(
+          `INSERT INTO playlists (id, name, description, type, createdAt, updatedAt)
+           VALUES (?, ?, ?, ?, ?, ?)`,
+          [id, name, description, type, now, now]
+        );
+      }
     }
+  } catch (error) {
+    toast.error(`Error in Init DB: ${error}`);
   }
 }
 
+export async function getDB(): Promise<SQLiteDatabase> {
+  if (db) return db;
+  db = await openDatabaseAsync("lor.db", { useNewConnection: true }); // ✅ No options
+  if (!db) {
+    toast.error("Database not initialized! Please re-open the app!");
+    throw new Error("Database not initialized");
+  }
+  return db;
+}
+
 export async function addSong(song: Song) {
+  const db = await getDB();
   await db.runAsync(
     `INSERT OR REPLACE INTO songs
       (id, uri, filename, title, artist, album, duration, coverArt, size, date, year, lyrics, syncedLyrics)
@@ -117,6 +134,7 @@ export async function getSong(songId: string): Promise<Song | undefined> {
   if (!songId) {
     return undefined;
   }
+  const db = await getDB();
   const row = await db.getFirstAsync(
     `SELECT * FROM songs WHERE id = ? ORDER BY date DESC`,
     [songId]
@@ -126,21 +144,25 @@ export async function getSong(songId: string): Promise<Song | undefined> {
 }
 
 export async function getAllSongs(): Promise<Song[]> {
+  const db = await getDB();
   const rows = await db.getAllAsync(`SELECT * FROM songs ORDER BY date DESC`);
   return rows as Song[];
 }
 
 export async function getSongInfoFromDB(id: string): Promise<Song | null> {
   if (!id) return null;
+  const db = await getDB();
   const row = await db.getFirstAsync(`SELECT * FROM songs WHERE id = ?`, [id]);
   return row ? (row as Song) : null;
 }
 
 export async function removeSong(id: string) {
+  const db = await getDB();
   await db.runAsync(`DELETE FROM songs WHERE id = ?`, [id]);
 }
 
 export async function clearSongs() {
+  const db = await getDB();
   await db.execAsync(`DELETE FROM songs`);
 }
 
@@ -149,6 +171,7 @@ export async function addLyrics(
   lyrics: string,
   syncedLyrics: string | null
 ) {
+  const db = await getDB();
   await db.runAsync(
     "UPDATE songs SET lyrics = ?, syncedLyrics = ? WHERE id = ?",
     [lyrics, syncedLyrics, songId]
@@ -161,6 +184,7 @@ export async function incrementPlayCountInDB(
   if (!songId) {
     return;
   }
+  const db = await getDB();
   await db.runAsync(
     "UPDATE songs SET playCount = COALESCE(playCount, 0) + 1, lastPlayedAt = strftime('%s','now') WHERE id = ?",
     [songId]
@@ -175,6 +199,7 @@ export async function updateSongSyncedLyrics(
     return;
   }
 
+  const db = await getDB();
   await db.runAsync(`UPDATE songs SET syncedLyrics = ? WHERE id = ?`, [
     syncedLyrics,
     id,
@@ -185,6 +210,7 @@ export async function createPlaylist(name: string, description?: string) {
   const id = uuid.v4().toString().slice(-8);
   const now = Date.now();
   try {
+    const db = await getDB();
     await db.runAsync(
       `INSERT INTO playlists (id, name, description, coverArt, type, createdAt, updatedAt)
      VALUES (?, ?, ?, ?, ?, ?, ?)`,
@@ -207,6 +233,7 @@ export async function getAllPlaylists(
     query += ` WHERE type = ?`;
     params.push(type);
   }
+  const db = await getDB();
 
   const playlists: Playlist[] = await db.getAllAsync(query, params);
   for (const playlist of playlists) {
@@ -228,6 +255,8 @@ export async function getSpeceficSystemPlaylist(
   type: "recent" | "most-played"
 ) {
   let songs: Song[] = [];
+
+  const db = await getDB();
 
   const playlist: Playlist | null = await db.getFirstAsync(
     `SELECT * FROM playlists WHERE type = ? AND id = ?`,
@@ -265,6 +294,8 @@ export async function addSongToPlaylist(playlistId: string, songId: string) {
   if (playlistId === "recent" || playlistId === "most-played") {
     return;
   }
+  const db = await getDB();
+
   const playlistSize: { count: number } | null = await db.getFirstAsync(
     `SELECT COUNT(*) as count FROM playlist_songs WHERE playlistId = ?`,
     [playlistId]
@@ -298,6 +329,8 @@ export async function removePlaylist(playlistId: string) {
   ) {
     return;
   }
+  const db = await getDB();
+
   await db.runAsync(`DELETE FROM playlists WHERE id = ?`, [playlistId]);
 }
 
@@ -308,6 +341,8 @@ export async function removeSongFromPlaylist(
   if (playlistId === "recent" || playlistId === "most-played") {
     return;
   }
+  const db = await getDB();
+
   await db.runAsync(
     `DELETE FROM playlist_songs WHERE playlistId = ? AND songId = ?`,
     [playlistId, songId]
@@ -326,6 +361,7 @@ export async function removeFavorite(songId: string) {
 }
 
 export async function getFavoriteSongs(): Promise<Song[]> {
+  const db = await getDB();
   const playlist = await db.getFirstAsync(
     `SELECT * FROM playlists WHERE id = 'favorites'`
   );
@@ -343,6 +379,7 @@ export async function getFavoriteSongs(): Promise<Song[]> {
 }
 
 export async function setLocalURI(localUri: string, songId: string) {
+  const db = await getDB();
   await db.runAsync(`UPDATE songs SET localUri = ? WHERE id = ?`, [
     localUri,
     songId,

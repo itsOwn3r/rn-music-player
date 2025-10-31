@@ -3,6 +3,7 @@ import { Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 import uuid from "react-native-uuid";
+import { toast } from "sonner-native";
 import { addSong, getAllSongs, removeSong } from "./db";
 import { displayNameFromSafUri, fileNameFromSafUri } from "./fileNameFromSAF";
 import { ensureCacheDir, looksLikeAudio } from "./fileUtils";
@@ -16,8 +17,11 @@ export async function syncFolder() {
     if (!directoryUri) {
       const perm =
         await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      if (!perm.granted || !perm.directoryUri)
-        throw new Error("Permission not granted");
+      if (!perm.granted || !perm.directoryUri) {
+        toast.error("Permition not granted!");
+        usePlayerStore.setState({ isLoading: false });
+        return null;
+      }
       directoryUri = perm.directoryUri;
       await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
     }
