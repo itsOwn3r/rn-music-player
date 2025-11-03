@@ -12,7 +12,7 @@ const ProgressBar = React.memo(() => {
   );
   return (
     <>
-      <View className="flex-row justify-between px-7 mt-8">
+      <View className="flex-row justify-between px-7 mt-4">
         <Text className="text-gray-400">{formatDuration(position)}</Text>
         <Text className="text-gray-400">{formatDuration(duration)}</Text>
       </View>

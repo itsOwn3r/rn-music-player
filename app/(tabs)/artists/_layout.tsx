@@ -13,14 +13,7 @@ const ArtistsScreenLayout = () => {
           headerTitleAlign: "center",
         }}
       />
-      <Stack.Screen
-        name="[name]"
-        options={({ route }: { route: { params?: { name?: string } } }) => ({
-          ...(StackScreenWithSearchBar || {}),
-          headerTitle: route?.params?.name || "Artist",
-          headerTitleAlign: "center",
-        })}
-      />
+      <Stack.Screen name="[name]" options={{ headerShown: false }} />
     </Stack>
   );
 };

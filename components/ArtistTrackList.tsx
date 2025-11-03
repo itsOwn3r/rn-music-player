@@ -56,7 +56,7 @@ const ArtistTrackList = ({ artist }: { artist: Artist }) => {
         </View>
       </View>
       <TracksList
-        id={artist.name}
+        id={`artist-${artist.name}-${Math.random().toString(36).slice(2, 8)}`}
         tracks={filteredSongs}
         extraData={artist?.name}
         ListHeaderComponentStyle={styles.artistHeaderContainer}

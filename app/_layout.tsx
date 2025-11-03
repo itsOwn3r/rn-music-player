@@ -1,7 +1,7 @@
 import PlayerBinder from "@/components/PlayerBinder";
 import { Stack } from "expo-router";
 import React, { useEffect } from "react";
-import { StatusBar } from "react-native";
+import { I18nManager, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
@@ -36,6 +36,11 @@ export default function Layout() {
       })();
     });
   }, [loadFavorites, loadLibrary]);
+
+  if (I18nManager.isRTL) {
+    I18nManager.allowRTL(false);
+    I18nManager.forceRTL(false);
+  }
 
   return (
     <SafeAreaProvider>

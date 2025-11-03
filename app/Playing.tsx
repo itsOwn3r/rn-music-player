@@ -13,7 +13,7 @@ import SyncedLyrics from "@/components/SyncedLyrics";
 import { handleFetchingLyrics } from "@/tools/handleFetchingLyrics";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
-import { useRouter } from "expo-router";
+import { Link, useRouter } from "expo-router";
 import React from "react";
 import {
   Dimensions,
@@ -34,6 +34,7 @@ import { SafeAreaView } from "react-native-safe-area-context";
 import TextTicker from "react-native-text-ticker";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
+const IMAGE_SIZE = SCREEN_HEIGHT * 0.4;
 
 export default function PlayingScreen() {
   const router = useRouter();
@@ -98,8 +99,9 @@ export default function PlayingScreen() {
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+
   return (
-    <SafeAreaView className="flex-1 h-screen">
+    <SafeAreaView className="flex-1">
       {/* Background overlay */}
       <Animated.View style={StyleSheet.absoluteFillObject}>
         <Animated.View
@@ -129,9 +131,14 @@ export default function PlayingScreen() {
         >
           <DismissPlayerSymbol />
           {/* Your player content goes here */}
-          <View className="mt-20">
+          <View className="mt-20" style={{ height: "100%" }}>
             <View
-              className={` relative items-start rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto size-96`}
+              className={` relative items-start rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto`}
+              style={{
+                width: "90%",
+                height: IMAGE_SIZE,
+                flex: 4,
+              }}
             >
               <TouchableOpacity
                 onPress={toggleShowLyrics}
@@ -145,8 +152,13 @@ export default function PlayingScreen() {
                   }
                   alt="Cover Image"
                   className="rounded-lg shadow-lg shadow-black size-full"
-                  width={250}
-                  height={250}
+                  width={IMAGE_SIZE}
+                  height={IMAGE_SIZE}
+                  style={{
+                    alignSelf: "center",
+                    width: "100%",
+                    height: "100%",
+                  }}
                 />
               </TouchableOpacity>
               {showLyrics &&
@@ -179,109 +191,127 @@ export default function PlayingScreen() {
                   </View>
                 ))}
             </View>
-
-            {/* Song Info */}
-            <View className="mb-4 mt-8 flex flex-row justify-center items-center z-50 w-full relative bg--500">
-              <TouchableOpacity
-                onPress={() => toggleFavorite(currentSong?.id || "")}
-                className="text-white size-12 items-center flex justify-center absolute left-4"
-              >
-                <FontAwesome
-                  color="red"
-                  name={isFavorite ? "heart" : "heart-o"}
-                  size={24}
-                />
-              </TouchableOpacity>
-              <View className="flex justify-center relative items-center px-[15%]">
-                {currentSong ? (
-                  <TextTicker
-                    duration={11000}
-                    loop
-                    bounce
-                    scroll
-                    repeatSpacer={50}
-                    className="text-2xl font-bold px-3 text-white"
-                    marqueeDelay={2000}
+            <View
+              className="gap-y-4"
+              style={{
+                flex: 6,
+              }}
+            >
+              {/* Song Info */}
+              <View className="mb-4 mt-4 flex flex-row justify-center items-center z-50 w-full relative">
+                <TouchableOpacity
+                  onPress={() => toggleFavorite(currentSong?.id || "")}
+                  className="text-white size-12 items-center flex justify-center absolute left-4"
+                >
+                  <FontAwesome
+                    color="red"
+                    name={isFavorite ? "heart" : "heart-o"}
+                    size={24}
+                  />
+                </TouchableOpacity>
+                <View className="flex justify-center relative items-center px-[15%]">
+                  {currentSong ? (
+                    <TextTicker
+                      duration={11000}
+                      loop
+                      bounce
+                      scroll
+                      repeatSpacer={50}
+                      className="text-2xl font-bold px-3 text-white"
+                      marqueeDelay={2000}
+                    >
+                      {currentSong.title}
+                    </TextTicker>
+                  ) : (
+                    "Song Title"
+                  )}
+                  <Link
+                    href={{
+                      pathname: "/(tabs)/artists/[name]",
+                      params: {
+                        name: currentSong
+                          ? currentSong.artist?.replaceAll(" ", "+") ||
+                            "Artist+Name"
+                          : "Artist+Name",
+                      },
+                    }}
+                    replace={true}
+                    className="text-center text-base text-gray-400 font-semibold mb-1"
                   >
-                    {currentSong.title}
-                  </TextTicker>
-                ) : (
-                  "Song Title"
-                )}
-                <Text className="text-center text-base text-gray-400 font-semibold mb-1">
-                  {currentSong ? currentSong.artist : "Artist Name"}
-                </Text>
+                    {currentSong ? currentSong.artist : "Artist Name"}
+                  </Link>
+                </View>
+                <TouchableOpacity
+                  onPress={addToPlaylist}
+                  activeOpacity={0.8}
+                  className="size-12 rounded-full justify-center items-center absolute right-4"
+                >
+                  <MaterialIcons name="playlist-add" size={30} color="#fff" />
+                </TouchableOpacity>
               </View>
-              <TouchableOpacity
-                onPress={addToPlaylist}
-                activeOpacity={0.8}
-                className="size-12 rounded-full justify-center items-center absolute right-4"
-              >
-                <MaterialIcons name="playlist-add" size={30} color="#fff" />
-              </TouchableOpacity>
-            </View>
+              <View className="flex justify-between w-full flex-row px-5">
+                <TouchableOpacity
+                  onPress={() => router.push("/Queue")}
+                  className="size-12 items-center flex justify-center text-[#b8b8b8]"
+                >
+                  <FontAwesome name="list-ol" color="#b8b8b8" size={24} />
+                </TouchableOpacity>
 
-            <View className="flex justify-between w-full flex-row px-5">
-              <TouchableOpacity
-                onPress={() => router.push("/Queue")}
-                className="size-12 items-center flex justify-center text-[#b8b8b8]"
-              >
-                <FontAwesome name="list-ol" color="#b8b8b8" size={24} />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    router.push({
+                      pathname: "/info/[id]",
+                      params: { id: currentSong?.id ?? "" },
+                    })
+                  }
+                  className="text-white size-12 items-center flex justify-center"
+                >
+                  <MaterialIcons color="white" name="info-outline" size={30} />
+                </TouchableOpacity>
 
-              <TouchableOpacity
-                onPress={() =>
-                  router.push({
-                    pathname: "/info/[id]",
-                    params: { id: currentSong?.id ?? "" },
-                  })
-                }
-                className="text-white size-12 items-center flex justify-center"
-              >
-                <MaterialIcons color="white" name="info-outline" size={24} />
-              </TouchableOpacity>
+                <TouchableOpacity
+                  onPress={() =>
+                    handleDownload(
+                      currentSong?.id || "",
+                      currentSong?.uri || ""
+                    )
+                  }
+                  className="text-white size-12 items-center flex justify-center"
+                >
+                  <FontAwesome color="white" name="download" size={24} />
+                </TouchableOpacity>
+              </View>
+              {/* Time Labels */}
+              <ProgressBar />
+              {/* Controls */}
+              <View className="w-full flex flex-row justify-evenly items-center mt-2">
+                <View className="flex-row items-center justify-center">
+                  <ShuffleHandler iconSize={21} />
+                </View>
 
-              <TouchableOpacity
-                onPress={() =>
-                  handleDownload(currentSong?.id || "", currentSong?.uri || "")
-                }
-                className="text-white size-12 items-center flex justify-center"
-              >
-                <FontAwesome color="white" name="download" size={24} />
-              </TouchableOpacity>
-            </View>
+                <View className="flex-row items-center justify-center">
+                  <SkipToLastButton iconSize={30} />
+                </View>
 
-            {/* Time Labels */}
+                <View className="flex-row items-center justify-center">
+                  <PlayPauseButton iconSize={30} />
+                </View>
 
-            <ProgressBar />
-          </View>
-          {/* Controls */}
-          <View className="w-full flex flex-row justify-evenly items-center mt-4">
-            <View className="flex-row items-center justify-center">
-              <ShuffleHandler iconSize={21} />
-            </View>
+                <View className="flex-row items-center justify-center">
+                  <SkipToNextButton iconSize={30} />
+                </View>
 
-            <View className="flex-row items-center justify-center">
-              <SkipToLastButton iconSize={30} />
-            </View>
-
-            <View className="flex-row items-center justify-center">
-              <PlayPauseButton iconSize={30} />
-            </View>
-
-            <View className="flex-row items-center justify-center">
-              <SkipToNextButton iconSize={30} />
-            </View>
-
-            <View className="flex-row items-center justify-center">
-              <RepeatHandler
-                iconSize={21}
-                classNames="flex flex-row justify-center items-center"
-              />
+                <View className="flex-row items-center justify-center">
+                  <RepeatHandler
+                    iconSize={21}
+                    classNames="flex flex-row justify-center items-center"
+                  />
+                </View>
+              </View>
+              <PlayerVolumeBar />
+              {/* <PlayerFooter currentSong={currentSong} /> */}
             </View>
           </View>
-          <PlayerVolumeBar />
-          {/* <PlayerFooter currentSong={currentSong} /> */}
         </Animated.View>
       </GestureDetector>
     </SafeAreaView>
