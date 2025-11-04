@@ -69,7 +69,7 @@ const LoadingScreen = () => {
 
       {/* Text with neumorphism effect */}
       <Text className="text-3xl font-bold text-white mt-8 shadow-md">
-        Loading Music...
+        Loading...
       </Text>
     </View>
   );

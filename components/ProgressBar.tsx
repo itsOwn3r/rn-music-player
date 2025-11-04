@@ -3,13 +3,14 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import Slider from "@react-native-community/slider";
 import React from "react";
 import { Text, View } from "react-native";
+import { useProgress } from "react-native-track-player";
 
 const ProgressBar = React.memo(() => {
-  const position = usePlayerStore((s) => s.position);
-  const duration = usePlayerStore((s) => s.duration);
   const handleChangeSongPosition = usePlayerStore(
     (s) => s.handleChangeSongPosition
   );
+  const { position, duration } = useProgress();
+
   return (
     <>
       <View className="flex-row justify-between px-7 mt-4">

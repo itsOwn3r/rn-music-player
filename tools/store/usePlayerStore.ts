@@ -20,6 +20,7 @@ import saveSongMetadata from "@/tools/saveCurrnetSong";
 import { Playlist, Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
+import TrackPlayer, { Event, State } from "react-native-track-player";
 import uuid from "react-native-uuid";
 import { toast } from "sonner-native";
 import { create } from "zustand";
@@ -30,22 +31,8 @@ if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
 }
 let _lastQueueAdvance = 0;
-// Shape of the engine we expect from expo-audio
-type AudioEngine = {
-  replace: (src: { uri: string }) => any;
-  play: () => any;
-  pause: () => any;
-  seekTo: (pos: number) => any;
-  isLoaded: boolean;
-  playing: boolean;
-  currentTime: number;
-  duration: number;
-};
 
 type PlayerStore = {
-  // engine instance is injected at runtime from a React component
-  engine: AudioEngine | null;
-
   files: Song[];
   currentSong: Song | null;
   currentSongIndex: number;
@@ -63,8 +50,6 @@ type PlayerStore = {
   loadLibrary: () => Promise<void>;
   addFile: (song: Song) => Promise<void>;
 
-  // engine binding + progress
-  bindEngine: (engine: AudioEngine) => void;
   setProgress: (position: number, duration: number) => void;
 
   // actions
@@ -123,8 +108,6 @@ type PlayerStore = {
 export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => ({
-      engine: null,
-
       files: [],
       currentSong: null,
       currentSongIndex: -1,
@@ -154,7 +137,6 @@ export const usePlayerStore = create<PlayerStore>()(
 
         set({ files: mergedFiles });
       },
-      bindEngine: (engine) => set({ engine }),
       loadLibrary: async () => {
         const songs = await getAllSongs();
         set({ files: songs });
@@ -215,225 +197,35 @@ export const usePlayerStore = create<PlayerStore>()(
 
       setProgress: (position, duration) =>
         set({ position, duration: duration }),
-
-      // pickFolder: async () => {
-      //   set({ isLoading: true });
-      //   try {
-      //     if (Platform.OS !== "android") {
-      //       throw new Error("Folder picking is Android-only.");
-      //     }
-
-      //     let directoryUri = await AsyncStorage.getItem("musicDirectoryUri");
-      //     if (!directoryUri) {
-      //       const perm =
-      //         await FileSystem.StorageAccessFramework.requestDirectoryPermissionsAsync();
-      //       if (!perm.granted || !perm.directoryUri)
-      //         throw new Error("Permission not granted");
-      //       directoryUri = perm.directoryUri;
-      //       await AsyncStorage.setItem("musicDirectoryUri", directoryUri);
-      //     }
-
-      //     const entries =
-      //       await FileSystem.StorageAccessFramework.readDirectoryAsync(
-      //         directoryUri
-      //       );
-      //     const audioUris = entries.filter(looksLikeAudio);
-      //     if (audioUris.length === 0) {
-      //       set({ files: [], currentSongIndex: -1, isLoading: false });
-      //       return;
-      //     }
-
-      //     const cacheDir = await ensureCacheDir();
-
-      //     const lightweightList: Song[] = audioUris.map((uri, index) => {
-      //       const filename = uri.split("/").pop() ?? "Unknown.mp3";
-
-      //       // Check in static songs
-      //       const existing = staticSongs.find((s) => s.uri === uri);
-
-      //       if (existing) {
-      //         // Use cached/static song, enforce correct index
-      //         return { ...existing, index };
-      //       }
-
-      //       // Otherwise create a lightweight placeholder
-      //       return {
-      //         id: uuid.v4().toString().slice(-8),
-      //         uri,
-      //         filename: fileNameFromSafUri(uri) ?? filename,
-      //         title:
-      //           displayNameFromSafUri(uri) ??
-      //           decodeURIComponent(filename.replace(/\.[^/.]+$/, "")),
-      //         artist: null,
-      //         album: null,
-      //         coverArt: null,
-      //         index,
-      //         comment: null,
-      //         date: null,
-      //         duration: 0,
-      //         year: null,
-      //         lyrics: null,
-      //         syncedLyrics: null,
-      //       };
-      //     });
-
-      //     // const sortedList = lightweightList.sort((a, b) =>
-      //     //   a.date > b.date
-      //     // );
-
-      //     const sortedList = lightweightList.sort(
-      //       (a, b) => (a?.date ?? 0) - (b?.date ?? 0)
-      //     );
-
-      //     // Merge persisted lyrics/syncedLyrics into the freshly scanned list
-      //     const existingFiles = get().files ?? [];
-
-      //     const mergedList: Song[] = sortedList.map((song) => {
-      //       const existing = existingFiles.find((f) => f.uri === song.uri);
-      //       const staticMatch = staticSongs.find((s) => s.uri === song.uri);
-
-      //       return {
-      //         ...song,
-      //         ...(staticMatch ?? {}), // keep static metadata if present
-      //         // preserve previously-saved lyrics if available, otherwise keep whatever came from the scan (or null)
-      //         lyrics: existing?.lyrics ?? song.lyrics ?? null,
-      //         syncedLyrics: existing?.syncedLyrics ?? song.syncedLyrics ?? null,
-      //       };
-      //     });
-
-      //     for (const song of mergedList) {
-      //       await addSong(song);
-      //     }
-
-      //     // ✅ Update Zustand
-      //     const songs = await getAllSongs();
-      //     usePlayerStore.setState({ files: songs });
-
-      //     const lastSong = await AsyncStorage.getItem("song");
-      //     if (lastSong) {
-      //       const lastSongObject: Song = JSON.parse(lastSong);
-      //       set({
-      //         currentSongIndex: lastSongObject.index,
-      //         currentSong: lastSongObject,
-      //       });
-      //     } else {
-      //       set({ currentSongIndex: 0, currentSong: sortedList[0] });
-      //     }
-
-      //     const firstChunk = sortedList.slice(0, 40);
-      //     const rest = sortedList.slice(40);
-
-      //     const inflight = new Set<string>();
-      //     const fetched = new Set<string>();
-
-      //     const fetchOne = async (song: Song, idx: number) => {
-      //       if (fetched.has(song.uri) || inflight.has(song.uri)) return;
-      //       inflight.add(song.uri);
-      //       try {
-      //         const info = await FileSystem.getInfoAsync(song.uri as any);
-      //         const modificationTime =
-      //           info.exists && "modificationTime" in info
-      //             ? info.modificationTime
-      //             : undefined;
-
-      //         const cached =
-      //           (modificationTime !== undefined &&
-      //             (await getCachedMetadata(song.uri, modificationTime))) ||
-      //           (await getCachedMetadataLoose(song.uri));
-
-      //         if (cached) {
-      //           set((prev) => ({
-      //             files: prev.files.map((f) =>
-      //               f.uri === song.uri
-      //                 ? {
-      //                     ...f,
-      //                     ...cached,
-      //                     index: idx,
-      //                     lyrics: f.lyrics ?? cached.lyrics ?? null,
-      //                     syncedLyrics:
-      //                       f.syncedLyrics ?? cached.syncedLyrics ?? null,
-      //                   }
-      //                 : f
-      //             ),
-      //           }));
-      //           fetched.add(song.uri);
-      //           return;
-      //         }
-
-      //         // Force read metadata if not cached
-      //         const tags = await readTagsForContentUri(song.uri, cacheDir);
-
-      //         const merged: Song = { ...song, ...tags, index: idx };
-
-      //         if (modificationTime) {
-      //           await setCachedMetadata(song.uri, modificationTime, merged);
-      //         } else {
-      //           await setCachedMetadataLoose(song.uri, merged);
-      //         }
-
-      //         set((prev) => ({
-      //           files: prev.files.map((f) =>
-      //             f.uri === song.uri
-      //               ? {
-      //                   ...f,
-      //                   ...tags,
-      //                   index: idx,
-      //                   lyrics: f.lyrics ?? tags.lyrics ?? null,
-      //                   syncedLyrics:
-      //                     f.syncedLyrics ?? tags.syncedLyrics ?? null,
-      //                 }
-      //               : f
-      //           ),
-      //         }));
-      //         fetched.add(song.uri);
-      //       } catch (err) {
-      //         console.warn("Metadata parse failed:", err);
-      //       } finally {
-      //         inflight.delete(song.uri);
-      //       }
-      //     };
-
-      //     const runPool = (list: Song[], concurrency: number) => {
-      //       let i = 0;
-      //       const worker = async () => {
-      //         while (i < list.length) {
-      //           const item = list[i++];
-      //           await fetchOne(item, item.index);
-      //         }
-      //       };
-
-      //       Array.from({ length: concurrency }).forEach(() => {
-      //         worker().catch((e) => console.warn("Metadata worker error:", e));
-      //       });
-      //     };
-
-      //     runPool(firstChunk, 4);
-      //     runPool(rest, 2);
-      //   } catch (err) {
-      //     console.error("pickFolder error:", err);
-      //     set({ isLoading: false });
-      //   } finally {
-      //     set({ isLoading: false });
-      //   }
-      // },
       playFile: async (file: Song, duration?: number) => {
-        const { engine, incrementPlayCount } = get();
-        if (!engine) return;
+        const { incrementPlayCount } = get();
+
+        await TrackPlayer.reset();
 
         await saveSongMetadata(file);
         const uri = file.localUri ?? file.uri;
-        await engine.replace({ uri: uri });
-        await engine.seekTo(0);
-        await engine.play();
+        await TrackPlayer.add({
+          id: file.id,
+          url: uri,
+          title: file.title ?? "Unknown Title",
+          artist: file.artist ?? "Unknown Artist",
+          artwork: file.coverArt ?? undefined, // optional
+          duration: duration ?? undefined,
+        });
+
+        // 🔹 Start playback
+        await TrackPlayer.play();
 
         incrementPlayCount(file?.id);
         await incrementPlayCountInDB(file?.id);
+
+        const trackDuration = duration ?? (await TrackPlayer.getDuration());
 
         set({
           isPlaying: true,
           currentSong: file,
           currentSongIndex: file.index,
-          duration: duration ?? engine.duration,
+          duration: trackDuration,
           position: 0,
         });
       },
@@ -444,16 +236,11 @@ export const usePlayerStore = create<PlayerStore>()(
         isRandom?: boolean,
         contextQueue?: Song[]
       ) => {
-        const engine = get().engine;
-        if (!engine) return;
-
         const { files, currentSongIndex, position, repeat } = get();
         if (!files.length) return;
         if (contextQueue && contextQueue.length) {
           set({ queue: contextQueue, queueContext: "custom" });
         }
-
-        console.log("indxxxx ", index);
 
         // const selectedIndex = index < 0 ? 0 : index;
 
@@ -466,19 +253,17 @@ export const usePlayerStore = create<PlayerStore>()(
           return false;
         });
 
-        console.log("findSong.indx ", findSong?.index);
         const selectedIndex =
           typeof findSong?.index === "number" && findSong.index >= 0
             ? findSong.index
             : 0;
-        console.log("selectedIndex ", selectedIndex);
 
         if (
           selectedIndex === 0 &&
           currentSongIndex > selectedIndex &&
           repeat === "off"
         ) {
-          engine.pause();
+          await TrackPlayer.pause();
           set({ currentSongIndex: 0, isPlaying: false, currentSong: files[0] });
         } else if (selectedIndex >= files.length) {
           await get().playFile(files[0]);
@@ -488,15 +273,12 @@ export const usePlayerStore = create<PlayerStore>()(
             (isRandom && backwardOrForward === "backward")) &&
           position >= 5
         ) {
-          await engine.seekTo(0);
+          await TrackPlayer.seekTo(0);
           set({ position: 0 });
         } else if (currentSongIndex === selectedIndex) {
-          await engine.play(); // resume
+          await TrackPlayer.play();
           set({ isPlaying: true });
         } else {
-          console.log("selectedIndex ", selectedIndex);
-          console.log("files[selectedIndex]", files[selectedIndex]);
-          console.log("findSong.index", findSong?.index);
           await get().playFile(files[selectedIndex]);
           set({
             currentSongIndex: selectedIndex,
@@ -510,9 +292,6 @@ export const usePlayerStore = create<PlayerStore>()(
         isRandom?: boolean,
         contextQueue?: Song[]
       ) => {
-        const engine = get().engine;
-        if (!engine) return;
-
         const { files, currentSongIndex, position } = get();
         if (!files.length) return;
 
@@ -545,10 +324,10 @@ export const usePlayerStore = create<PlayerStore>()(
             (isRandom && backwardOrForward === "backward")) &&
           position >= 5
         ) {
-          await engine.seekTo(0);
+          await TrackPlayer.seekTo(0);
           set({ position: 0 });
         } else if (currentSongIndex === selectedIndex) {
-          await engine.play(); // resume
+          await TrackPlayer.play();
           set({ isPlaying: true });
         } else {
           await get().playFile(findSong);
@@ -570,16 +349,16 @@ export const usePlayerStore = create<PlayerStore>()(
           direction?: "forward" | "backward";
         }
       ) => {
-        const { engine, currentSong } = get();
-        if (!engine) return;
+        const { currentSong } = get();
 
         if (opts?.contextQueue) {
+          // await TrackPlayer.setQueue(opts.contextQueue);
           set({ queue: opts.contextQueue });
         }
 
         // --- ④ Same song -> resume
         if (currentSong?.uri === song.uri) {
-          await engine.play();
+          await TrackPlayer.play();
           set({ isPlaying: true });
           return;
         }
@@ -589,39 +368,33 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ currentSong: song, isPlaying: true, position: 0 });
       },
       playPauseMusic: async () => {
-        const engine = get().engine;
-        if (!engine) return;
-
-        if (engine.playing) {
-          await engine.pause();
+        const state = await TrackPlayer.getPlaybackState();
+        if (state.state === State.Playing) {
+          await TrackPlayer.pause();
           set({ isPlaying: false });
         } else {
-          await engine.play();
+          await TrackPlayer.play();
           set({ isPlaying: true });
         }
       },
       setIsPlaying: (val: boolean) => set({ isPlaying: val }),
 
-      handleChangeSongPosition: (pos: number) => {
-        const engine = get().engine;
-        if (!engine) return;
-        engine.seekTo(pos);
+      handleChangeSongPosition: async (pos: number) => {
+        await TrackPlayer.seekTo(pos);
         set({ position: pos });
       },
 
-      handlebackwardPosition: () => {
-        const { engine, position } = get();
-        if (!engine) return;
+      handlebackwardPosition: async () => {
+        const { position } = get();
         const newPosition = position - 5 > 0 ? position - 5 : 0;
-        engine.seekTo(newPosition);
+        await TrackPlayer.seekTo(newPosition);
         set({ position: newPosition });
       },
 
-      handleForwardPosition: () => {
-        const { engine, position, duration } = get();
-        if (!engine) return;
+      handleForwardPosition: async () => {
+        const { position, duration } = get();
         const newPosition = position + 5 < duration ? position + 5 : position;
-        engine.seekTo(newPosition);
+        await TrackPlayer.seekTo(newPosition);
         set({ position: newPosition });
       },
       toggleShuffle: () =>
@@ -688,7 +461,6 @@ export const usePlayerStore = create<PlayerStore>()(
           queue,
           playFile,
           repeat,
-          engine,
           setIsPlaying,
           currentSong,
           position,
@@ -711,8 +483,8 @@ export const usePlayerStore = create<PlayerStore>()(
 
         // Handle repeat-one
         if (repeat === "one") {
-          engine?.seekTo(0);
-          engine?.play();
+          await TrackPlayer.seekTo(0);
+          await TrackPlayer.play();
           setIsPlaying(true);
           incrementPlayCount(currentSong?.id);
           await incrementPlayCountInDB(currentSong?.id);
@@ -739,15 +511,31 @@ export const usePlayerStore = create<PlayerStore>()(
             nextIndex = 0;
           } else {
             nextIndex = 0;
-            engine?.pause();
+            await TrackPlayer.pause();
+
             setIsPlaying(false);
-            engine?.replace({ uri: queue[nextIndex].uri });
+            const nextTrack = queue[nextIndex];
+            const uri = nextTrack.localUri ?? nextTrack.uri;
+
+            await TrackPlayer.reset();
+            await TrackPlayer.add({
+              id: nextTrack.id,
+              url: uri,
+              title: nextTrack.title ?? "Unknown Title",
+              artist: nextTrack.artist ?? "Unknown Artist",
+              artwork: nextTrack.coverArt ?? undefined,
+              duration: nextTrack.duration ?? undefined,
+            });
+
+            await TrackPlayer.pause();
+
             const nextSong = queue[nextIndex];
             set({
               position: 0,
-              duration: engine?.duration ?? nextSong.duration,
+              duration: nextSong.duration,
               currentSong: nextSong,
               currentSongIndex: nextSong.index, // keep in sync with global files list
+              isPlaying: false,
             });
             return;
           }
@@ -755,7 +543,7 @@ export const usePlayerStore = create<PlayerStore>()(
           if (repeat === "all") {
             nextIndex = queue.length - 1;
           } else {
-            engine?.pause();
+            await TrackPlayer.pause();
             setIsPlaying(false);
             return;
           }
@@ -766,6 +554,7 @@ export const usePlayerStore = create<PlayerStore>()(
         }
 
         const nextSong = queue[nextIndex];
+
         if (!nextSong) return;
 
         await playFile(nextSong);
@@ -775,16 +564,12 @@ export const usePlayerStore = create<PlayerStore>()(
           currentSongIndex: nextSong.index, // keep in sync with global files list
         });
 
-        await new Promise((r) => setTimeout(r, 350)); // let engine settle
+        await new Promise((r) => setTimeout(r, 350));
       },
-      setVolume: (val: number) => {
+      setVolume: async (val: number) => {
         // AsyncStorage.setItem("volume", JSON.stringify(val));
+        await TrackPlayer.setVolume(val);
         set({ volume: val });
-        const engine = get().engine;
-        if (engine && "setVolume" in engine) {
-          // expo-audio engine has setVolume
-          (engine as any).setVolume(val);
-        }
       },
       setLyrics: async (id: string, lyrics: string, syncedLyrics?: string) => {
         if (!id || (lyrics && syncedLyrics)) {
@@ -944,3 +729,33 @@ export const usePlaylistStore = create<{
     return playlist;
   },
 }));
+
+TrackPlayer.addEventListener(Event.PlaybackState, (data) => {
+  usePlayerStore.setState({ isPlaying: data.state === State.Playing });
+});
+
+TrackPlayer.addEventListener(
+  Event.PlaybackProgressUpdated,
+  ({ position, duration }) => {
+    usePlayerStore.setState({ position, duration });
+  }
+);
+
+TrackPlayer.addEventListener(Event.RemoteSeek, async ({ position }) => {
+  await TrackPlayer.seekTo(position);
+  usePlayerStore.setState({ position });
+});
+
+TrackPlayer.addEventListener(Event.RemoteJumpBackward, async () => {
+  usePlayerStore.getState().playAnotherSongInQueue("previous");
+});
+
+TrackPlayer.addEventListener(Event.RemoteJumpForward, async () => {
+  usePlayerStore.getState().playAnotherSongInQueue("next");
+});
+
+TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
+  const queue = usePlayerStore.getState().queue;
+  if (queue.length > 0)
+    await usePlayerStore.getState().playAnotherSongInQueue("next");
+});

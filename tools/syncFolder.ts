@@ -121,11 +121,6 @@ export async function syncFolder() {
         currentSongIndex: lastSongObject.index,
         currentSong: lastSongObject,
       });
-    } else {
-      usePlayerStore.setState({
-        currentSongIndex: sortedList.length - 1,
-        currentSong: sortedList[sortedList.length - 1],
-      });
     }
 
     const inflight = new Set<string>();

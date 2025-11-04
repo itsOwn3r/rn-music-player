@@ -3,9 +3,9 @@ import { Song } from "@/types/types";
 import { FontAwesome6, Ionicons } from "@expo/vector-icons";
 import React from "react";
 import { Text, TouchableOpacity, View } from "react-native";
+import TrackPlayer from "react-native-track-player";
 
 const QueueControls = ({ tracks }: { tracks: Song[] }) => {
-  const engine = usePlayerStore((s) => s.engine);
   const clearQueue = usePlayerStore((s) => s.clearQueue);
   const playSongGeneric = usePlayerStore((s) => s.playSongGeneric);
   const handleShuffle = async () => {
@@ -22,7 +22,7 @@ const QueueControls = ({ tracks }: { tracks: Song[] }) => {
     await playSongGeneric(tracks[0], {
       contextQueue: tracks,
     });
-    engine?.play();
+    await TrackPlayer.play();
   };
 
   return (

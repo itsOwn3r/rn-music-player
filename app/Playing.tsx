@@ -163,20 +163,22 @@ export default function PlayingScreen() {
               </TouchableOpacity>
               {showLyrics &&
                 (currentSong?.lyrics ? (
-                  <TouchableOpacity
-                    className="absolute inset-0 z-50 bg-black/70"
-                    onPress={toggleShowLyrics}
+                  <View
+                    className="absolute inset-0 z-50 bg-black/70 size-full"
+                    // onPress={toggleShowLyrics}
+                    // onLongPress={toggleShowLyrics}
                   >
                     <SyncedLyrics
+                      toggleShowLyrics={toggleShowLyrics}
                       lrc={
                         currentSong?.syncedLyrics
                           ? currentSong.syncedLyrics
                           : currentSong?.lyrics || ""
                       }
                     />
-                  </TouchableOpacity>
+                  </View>
                 ) : (
-                  <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center">
+                  <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center size-full">
                     <Text className="text-white text-2xl">No Lyrics :(</Text>
                     <TouchableOpacity
                       onPress={() =>

@@ -19,19 +19,9 @@ export const PlayPauseButton = ({
 }: PlayerButtonsProps) => {
   const isPlaying = usePlayerStore((s) => s.isPlaying);
   const playPauseMusic = usePlayerStore((s) => s.playPauseMusic);
-  const playSongGeneric = usePlayerStore((s) => s.playSongGeneric);
-  const currentSong = usePlayerStore((s) => s.currentSong);
-  const engine = usePlayerStore((s) => s.engine);
-  const position = usePlayerStore((s) => s.position);
 
   const handlePlayPause = async () => {
-    if (!engine?.isLoaded && currentSong?.uri) {
-      engine?.replace({ uri: currentSong.uri });
-      engine?.seekTo(position ? position : 0);
-      await playSongGeneric(currentSong);
-    } else {
-      await playPauseMusic();
-    }
+    await playPauseMusic();
   };
 
   return (

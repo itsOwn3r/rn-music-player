@@ -1,14 +1,20 @@
 import PlayerBinder from "@/components/PlayerBinder";
 import { Stack } from "expo-router";
-import React, { useEffect } from "react";
+import { useEffect } from "react";
 import { I18nManager, StatusBar } from "react-native";
 import { GestureHandlerRootView } from "react-native-gesture-handler";
 import { SafeAreaProvider } from "react-native-safe-area-context";
 
 import { initDB } from "@/tools/db";
+import { setupPlayer } from "@/tools/services/trackPlayerService";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
+import TrackPlayer from "react-native-track-player";
 import { toast, Toaster } from "sonner-native";
 import "../global.css";
+
+import playbackService from "@/service";
+
+TrackPlayer.registerPlaybackService(() => playbackService);
 
 export default function Layout() {
   const loadLibrary = usePlayerStore((s) => s.loadLibrary);
@@ -36,6 +42,14 @@ export default function Layout() {
       })();
     });
   }, [loadFavorites, loadLibrary]);
+
+  useEffect(() => {
+    setupPlayer();
+
+    return () => {
+      TrackPlayer.reset();
+    };
+  }, []);
 
   if (I18nManager.isRTL) {
     I18nManager.allowRTL(false);
@@ -93,6 +107,13 @@ export default function Layout() {
 
           <Stack.Screen
             name="lyrics"
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
+            name="notification.click"
             options={{
               headerShown: false,
             }}

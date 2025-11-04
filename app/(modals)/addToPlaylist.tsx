@@ -26,7 +26,7 @@ import {
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 
-const AddToPlaylist = () => {
+export default function AddToPlaylist() {
   const { trackUri } = useLocalSearchParams<{ trackUri: string }>();
   // const isLoading = usePlayerStore((s) => s.isLoading);
   const isLoading = usePlaylistStore((s) => s.isLoading);
@@ -188,6 +188,4 @@ const AddToPlaylist = () => {
       </GestureDetector>
     </SafeAreaView>
   );
-};
-
-export default AddToPlaylist;
+}
