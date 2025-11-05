@@ -410,8 +410,29 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ currentSong: song, isPlaying: true, position: 0 });
       },
       playPauseMusic: async () => {
+        const { currentSong, position } = get();
         const state = await TrackPlayer.getPlaybackState();
-        if (state.state === State.Playing) {
+
+        if (state.state === State.Stopped && currentSong) {
+          await TrackPlayer.reset();
+          const uri = currentSong.localUri ?? currentSong.uri;
+
+          await TrackPlayer.add([
+            {
+              id: currentSong.id,
+              url: uri,
+              title: currentSong.title ?? "Unknown Title",
+              artist: currentSong.artist ?? "Unknown Artist",
+              artwork: currentSong.coverArt ?? undefined,
+              duration: currentSong.duration ?? undefined,
+            },
+            { id: "placeholder", url: uri, title: currentSong.title },
+          ]);
+          set({ currentSong: currentSong, isPlaying: true, position });
+
+          await TrackPlayer.seekTo(position);
+          await TrackPlayer.play();
+        } else if (state.state === State.Playing) {
           await playPauseHandler("pause");
           await TrackPlayer.pause();
           set({ isPlaying: false });
@@ -782,7 +803,12 @@ export const usePlaylistStore = create<{
   },
 }));
 
-TrackPlayer.addEventListener(Event.PlaybackState, (data) => {
+TrackPlayer.addEventListener(Event.PlaybackState, async (data) => {
+  if (data.state === "paused") {
+    await playPauseHandler("pause");
+  } else if (data.state === "playing") {
+    await playPauseHandler("play");
+  }
   usePlayerStore.setState({ isPlaying: data.state === State.Playing });
 });
 
@@ -794,8 +820,24 @@ TrackPlayer.addEventListener(
 );
 
 TrackPlayer.addEventListener(Event.RemoteSeek, async ({ position }) => {
-  await TrackPlayer.seekTo(position);
-  usePlayerStore.setState({ position });
+  try {
+    const response = await axios.post(
+      "http://192.168.1.108:3001/api/music/position",
+      { position }
+    );
+
+    if (response.data.success) {
+      toast.success(`New Position: ${Number(Math.ceil(position * 100))}`);
+    } else {
+      toast.error(
+        `Error in changing Position! message: ${response.data.message}`
+      );
+    }
+    await TrackPlayer.seekTo(position);
+    usePlayerStore.setState({ position });
+  } catch (error) {
+    toast.error(`"Change Position failed: ", ${error}`);
+  }
 });
 
 TrackPlayer.addEventListener(Event.RemoteJumpForward, async () => {

@@ -11,10 +11,12 @@ const PlayerVolumeBar = () => {
   const setVolume = usePlayerStore((s) => s.setVolume);
 
   const handleVolumeChange = useCallback(
-    async (type: "increase" | "decrease") => {
+    async (type: "increase" | "decrease", vol?: number) => {
       let newVolume = volume;
 
-      if (type === "increase") {
+      if (vol) {
+        newVolume = vol;
+      } else if (type === "increase") {
         newVolume = Math.min(1, volume + 0.05);
       } else {
         newVolume = Math.max(0.0009, volume - 0.05);
@@ -53,7 +55,7 @@ const PlayerVolumeBar = () => {
           minimumValue={0}
           maximumValue={1}
           value={volume}
-          onSlidingComplete={(val) => setVolume(val)}
+          onSlidingComplete={(val) => handleVolumeChange("increase", val)}
           minimumTrackTintColor="#e17645"
           maximumTrackTintColor="#4a4a4a"
           thumbTintColor="#e17645"

@@ -30,8 +30,12 @@ import Animated, {
   useSharedValue,
   withSpring,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import TextTicker from "react-native-text-ticker";
+import { toast } from "sonner-native";
 
 const { height: SCREEN_HEIGHT } = Dimensions.get("window");
 const IMAGE_SIZE = SCREEN_HEIGHT * 0.4;
@@ -41,6 +45,9 @@ export default function PlayingScreen() {
   const translateY = useSharedValue(0);
 
   const toggleFavorite = usePlaylistStore((s) => s.toggleFavorite);
+
+  const device = usePlayerStore((s) => s.device);
+  const changeDevice = usePlayerStore((s) => s.changeDevice);
 
   const setLyrics = usePlayerStore((s) => s.setLyrics);
 
@@ -63,6 +70,19 @@ export default function PlayingScreen() {
       console.warn("Not enought details to download the song!");
     }
     await downloadFile(id, remoteUrl);
+  };
+
+  const handleChangeDevice = () => {
+    if (device === "all") {
+      changeDevice("phone");
+      toast.success("Playing on: Phone only!");
+    } else if (device === "phone") {
+      changeDevice("server");
+      toast.success("Playing on: Server only!");
+    } else {
+      changeDevice("all");
+      toast.success("Playing on All Devices!");
+    }
   };
 
   const isFavorite = usePlaylistStore((s) =>
@@ -100,6 +120,8 @@ export default function PlayingScreen() {
     transform: [{ translateY: translateY.value }],
   }));
 
+  const insets = useSafeAreaInsets();
+
   return (
     <SafeAreaView className="flex-1">
       {/* Background overlay */}
@@ -131,7 +153,7 @@ export default function PlayingScreen() {
         >
           <DismissPlayerSymbol />
           {/* Your player content goes here */}
-          <View className="mt-20" style={{ height: "100%" }}>
+          <View className="mt-16" style={{ height: "100%" }}>
             <View
               className={` relative items-start rounded-lg border-2 border-[#2a2d2fcd] shadow-inner shadow-gray-700 mx-auto`}
               style={{
@@ -197,6 +219,8 @@ export default function PlayingScreen() {
               className="gap-y-4"
               style={{
                 flex: 6,
+                justifyContent: "space-between",
+                paddingBottom: 12,
               }}
             >
               {/* Song Info */}
@@ -312,6 +336,37 @@ export default function PlayingScreen() {
               </View>
               <PlayerVolumeBar />
               {/* <PlayerFooter currentSong={currentSong} /> */}
+              <View
+                className="w-full justify-center items-center"
+                style={{
+                  paddingBottom:
+                    (insets.bottom === 0 ? insets.bottom : insets.bottom - 35) +
+                    70,
+                }}
+              >
+                <TouchableOpacity
+                  onPress={() => handleChangeDevice()}
+                  className="text-white size-12 items-center flex justify-center"
+                >
+                  {device === "all" && (
+                    <MaterialIcons
+                      color="white"
+                      name="speaker-group"
+                      size={33}
+                    />
+                  )}
+                  {device === "server" && (
+                    <MaterialIcons color="white" name="speaker" size={33} />
+                  )}
+                  {device === "phone" && (
+                    <MaterialIcons
+                      color="white"
+                      name="phone-android"
+                      size={33}
+                    />
+                  )}
+                </TouchableOpacity>
+              </View>
             </View>
           </View>
         </Animated.View>
