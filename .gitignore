@@ -8,7 +8,7 @@ assets/data
 android
 build
 my-app-key.keystore
-
+my-release-key.keystore
 # Expo
 .expo/
 dist/

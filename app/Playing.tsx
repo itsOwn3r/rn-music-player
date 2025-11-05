@@ -216,7 +216,7 @@ export default function PlayingScreen() {
                 ))}
             </View>
             <View
-              className="gap-y-4"
+              className="gap-y-1.5 sm:gap-y-4"
               style={{
                 flex: 6,
                 justifyContent: "space-between",
