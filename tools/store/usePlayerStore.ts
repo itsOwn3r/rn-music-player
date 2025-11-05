@@ -371,8 +371,29 @@ export const usePlayerStore = create<PlayerStore>()(
         set({ currentSong: song, isPlaying: true, position: 0 });
       },
       playPauseMusic: async () => {
+        const { currentSong, position } = get();
         const state = await TrackPlayer.getPlaybackState();
-        if (state.state === State.Playing) {
+
+        if (state.state === State.Stopped && currentSong) {
+          await TrackPlayer.reset();
+          const uri = currentSong.localUri ?? currentSong.uri;
+
+          await TrackPlayer.add([
+            {
+              id: currentSong.id,
+              url: uri,
+              title: currentSong.title ?? "Unknown Title",
+              artist: currentSong.artist ?? "Unknown Artist",
+              artwork: currentSong.coverArt ?? undefined,
+              duration: currentSong.duration ?? undefined,
+            },
+            { id: "placeholder", url: uri, title: currentSong.title },
+          ]);
+          set({ currentSong: currentSong, isPlaying: true, position });
+
+          await TrackPlayer.seekTo(position);
+          await TrackPlayer.play();
+        } else if (state.state === State.Playing) {
           await TrackPlayer.pause();
           set({ isPlaying: false });
         } else {
