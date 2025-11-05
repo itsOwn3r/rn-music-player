@@ -11,21 +11,24 @@ export async function setupPlayer() {
       appKilledPlaybackBehavior: AppKilledPlaybackBehavior.ContinuePlayback,
     },
     capabilities: [
-      Capability.JumpBackward,
+      Capability.SkipToPrevious,
       Capability.Play,
-      Capability.JumpForward,
+      Capability.Pause,
+      Capability.SkipToNext,
+      Capability.SeekTo,
+      // Keep JumpBackward/JumpForward here only if you use them manually
+    ],
+    notificationCapabilities: [
+      Capability.SkipToPrevious,
+      Capability.Play,
+      Capability.Pause,
+      Capability.SkipToNext,
       Capability.SeekTo,
     ],
     compactCapabilities: [
-      Capability.JumpBackward,
+      Capability.SkipToPrevious,
       Capability.Play,
-      Capability.JumpForward,
-      Capability.SeekTo,
-    ],
-    notificationCapabilities: [
-      Capability.JumpBackward,
-      Capability.Play,
-      Capability.JumpForward,
+      Capability.SkipToNext,
       Capability.SeekTo,
     ],
   });

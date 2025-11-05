@@ -7,7 +7,6 @@ export default function NotificationRedirect() {
   const pathname = usePathname();
 
   useEffect(() => {
-    // 🚫 Do nothing if we're already on the Playing screen
     if (pathname !== "/Playing") {
       router.dismissTo("/Playing");
     }

@@ -204,14 +204,17 @@ export const usePlayerStore = create<PlayerStore>()(
 
         await saveSongMetadata(file);
         const uri = file.localUri ?? file.uri;
-        await TrackPlayer.add({
-          id: file.id,
-          url: uri,
-          title: file.title ?? "Unknown Title",
-          artist: file.artist ?? "Unknown Artist",
-          artwork: file.coverArt ?? undefined, // optional
-          duration: duration ?? undefined,
-        });
+        await TrackPlayer.add([
+          {
+            id: file.id,
+            url: uri,
+            title: file.title ?? "Unknown Title",
+            artist: file.artist ?? "Unknown Artist",
+            artwork: file.coverArt ?? undefined,
+            duration: duration ?? undefined,
+          },
+          { id: "placeholder", url: uri, title: file.title },
+        ]);
 
         // 🔹 Start playback
         await TrackPlayer.play();
@@ -491,6 +494,11 @@ export const usePlayerStore = create<PlayerStore>()(
           return;
         }
 
+        if (type === "previous" && position > 5) {
+          await TrackPlayer.seekTo(0);
+          return;
+        }
+
         // Find where currentSongIndex sits inside the queue
         const songIndexInQueue = queue.findIndex(
           (song) => song.uri === currentSong?.uri
@@ -518,14 +526,17 @@ export const usePlayerStore = create<PlayerStore>()(
             const uri = nextTrack.localUri ?? nextTrack.uri;
 
             await TrackPlayer.reset();
-            await TrackPlayer.add({
-              id: nextTrack.id,
-              url: uri,
-              title: nextTrack.title ?? "Unknown Title",
-              artist: nextTrack.artist ?? "Unknown Artist",
-              artwork: nextTrack.coverArt ?? undefined,
-              duration: nextTrack.duration ?? undefined,
-            });
+            await TrackPlayer.add([
+              {
+                id: nextTrack.id,
+                url: uri,
+                title: nextTrack.title ?? "Unknown Title",
+                artist: nextTrack.artist ?? "Unknown Artist",
+                artwork: nextTrack.coverArt ?? undefined,
+                duration: nextTrack.duration ?? undefined,
+              },
+              { id: "placeholder", url: uri, title: nextTrack.title },
+            ]);
 
             await TrackPlayer.pause();
 
@@ -746,12 +757,22 @@ TrackPlayer.addEventListener(Event.RemoteSeek, async ({ position }) => {
   usePlayerStore.setState({ position });
 });
 
-TrackPlayer.addEventListener(Event.RemoteJumpBackward, async () => {
-  usePlayerStore.getState().playAnotherSongInQueue("previous");
+TrackPlayer.addEventListener(Event.RemoteJumpForward, async () => {
+  const { position, duration } = usePlayerStore.getState();
+  await TrackPlayer.seekTo(Math.min(position + 10, duration));
 });
 
-TrackPlayer.addEventListener(Event.RemoteJumpForward, async () => {
+TrackPlayer.addEventListener(Event.RemoteJumpBackward, async () => {
+  const { position } = usePlayerStore.getState();
+  await TrackPlayer.seekTo(Math.max(position - 10, 0));
+});
+
+TrackPlayer.addEventListener(Event.RemoteNext, async () => {
   usePlayerStore.getState().playAnotherSongInQueue("next");
+});
+
+TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
+  usePlayerStore.getState().playAnotherSongInQueue("previous");
 });
 
 TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
