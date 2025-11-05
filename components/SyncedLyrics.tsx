@@ -1,8 +1,10 @@
 import { parseLRC } from "@/tools/parseLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
+import axios from "axios";
 import React, { useEffect, useRef, useState } from "react";
 import { FlatList, Text, View } from "react-native";
 import { useProgress } from "react-native-track-player";
+import { toast } from "sonner-native";
 
 export default function SyncedLyrics({
   lrc,
@@ -52,6 +54,26 @@ export default function SyncedLyrics({
     }, 5000);
   };
 
+  const handlePosition = async (position: number) => {
+    try {
+      const response = await axios.post(
+        "http://192.168.1.108:3001/api/music/position",
+        { position }
+      );
+
+      if (response.data.success) {
+        toast.success(`New Position: ${Number(Math.ceil(position * 100))}`);
+      } else {
+        toast.error(
+          `Error in changing Position! message: ${response.data.message}`
+        );
+      }
+      handleChangeSongPosition(position);
+    } catch (error) {
+      toast.error(`"Change Position failed: ", ${error}`);
+    }
+  };
+
   return (
     <View style={{ flex: 1 }}>
       <FlatList
@@ -68,7 +90,7 @@ export default function SyncedLyrics({
         })}
         renderItem={({ item, index }) => (
           <Text
-            onPress={() => synced && handleChangeSongPosition(item.time)}
+            onPress={() => synced && handlePosition(item.time)}
             onLongPress={toggleShowLyrics}
             className={`text-center text-lg mx-4 ${
               synced && index === activeIndex

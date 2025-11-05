@@ -1,3 +1,4 @@
+import { playPauseHandler } from "@/components/playPauseHandler";
 import {
   addFavorite,
   addLyrics,
@@ -19,6 +20,7 @@ import {
 import saveSongMetadata from "@/tools/saveCurrnetSong";
 import { Playlist, Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
+import axios from "axios";
 import { Buffer } from "buffer";
 import TrackPlayer, { Event, State } from "react-native-track-player";
 import uuid from "react-native-uuid";
@@ -44,6 +46,9 @@ type PlayerStore = {
   shuffle: boolean;
 
   showLyrics: boolean;
+
+  device: "phone" | "server" | "all";
+  changeDevice: (device: "phone" | "server" | "all") => void;
 
   repeat: "off" | "all" | "one";
   // Actions
@@ -109,6 +114,7 @@ export const usePlayerStore = create<PlayerStore>()(
   persist(
     (set, get) => ({
       files: [],
+      device: "all",
       currentSong: null,
       currentSongIndex: -1,
       isPlaying: false,
@@ -197,13 +203,46 @@ export const usePlayerStore = create<PlayerStore>()(
 
       setProgress: (position, duration) =>
         set({ position, duration: duration }),
+      changeDevice: async (device: "phone" | "server" | "all") => {
+        set({ device });
+      },
       playFile: async (file: Song, duration?: number) => {
-        const { incrementPlayCount } = get();
+        const { incrementPlayCount, volume, device } = get();
 
         await TrackPlayer.reset();
 
         await saveSongMetadata(file);
         const uri = file.localUri ?? file.uri;
+
+        if (device !== "phone") {
+          try {
+            set({ isLoading: true });
+            const formData = new FormData();
+
+            // Get filename safely
+            const filename =
+              file.filename || uri.split("/").pop() || "unknown.mp3";
+
+            formData.append("volume", Math.ceil(volume * 100).toString());
+
+            formData.append("file", {
+              uri,
+              name: filename,
+              type: "audio/mpeg",
+            } as any);
+
+            await axios.post("http://192.168.1.108:3001/api/music", formData, {
+              headers: {
+                "Content-Type": "multipart/form-data",
+              },
+            });
+          } catch (error) {
+            toast.error(`"Upload failed: ", ${error}`);
+          } finally {
+            set({ isLoading: false });
+          }
+        }
+
         await TrackPlayer.add([
           {
             id: file.id,
@@ -373,9 +412,11 @@ export const usePlayerStore = create<PlayerStore>()(
       playPauseMusic: async () => {
         const state = await TrackPlayer.getPlaybackState();
         if (state.state === State.Playing) {
+          await playPauseHandler("pause");
           await TrackPlayer.pause();
           set({ isPlaying: false });
         } else {
+          await playPauseHandler("play");
           await TrackPlayer.play();
           set({ isPlaying: true });
         }
