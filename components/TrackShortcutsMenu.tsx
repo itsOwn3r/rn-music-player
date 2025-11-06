@@ -87,10 +87,13 @@ const TrackShortcutsMenu = ({
         onRequestClose={() => setVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/60 justify-end"
+          className="bg-black/60 justify-end size-full"
           onPress={() => setVisible(false)}
         >
-          <View className="bg-[#1c1c1e] rounded-t-2xl shadow-lg">
+          <View
+            className="bg-[#1c1c1e] rounded-t-2xl shadow-lg justify-end"
+            style={{ justifyContent: "flex-end", paddingBottom: 20 }}
+          >
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"
               onPress={() => fetchLyrics(track, setLyrics)}

@@ -22,7 +22,7 @@ export function processMusicData(musicArray: Song[]) {
     const artistsMap = new Map();
 
     musicArray.forEach((song) => {
-      const artistName = song.artist;
+      const artistName = song.artist?.toLowerCase();
       const artistImage = song.coverArt; // Use the song's cover art as the artist image
       const songData = {
         title: song.title,
@@ -40,7 +40,7 @@ export function processMusicData(musicArray: Song[]) {
         existingArtist.songs.push(songData);
       } else {
         // Create a new artist entry
-        artistsMap.set(artistName, {
+        artistsMap.set(artistName?.toLowerCase(), {
           name: artistName,
           image: artistImage,
           songs: [songData],

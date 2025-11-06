@@ -515,7 +515,8 @@ export const usePlayerStore = create<PlayerStore>()(
           return;
         }
 
-        if (type === "previous" && position > 5) {
+        const getProgress = await TrackPlayer.getProgress();
+        if (type === "previous" && getProgress.position > 5) {
           await TrackPlayer.seekTo(0);
           return;
         }
