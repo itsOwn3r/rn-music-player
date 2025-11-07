@@ -79,7 +79,7 @@ export const PlaylistTracksList = ({
       className="flex-1"
       style={{
         // paddingBottom: insets.bottom + 150,
-        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
+        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 50,
         paddingTop: insets.top,
         paddingBottom: insets.bottom + 10,
         elevation: 4,

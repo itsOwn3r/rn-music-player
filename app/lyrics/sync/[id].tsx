@@ -12,12 +12,13 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import TrackPlayer, { useProgress } from "react-native-track-player";
 
 export default function SyncLyricsScreen() {
   const router = useRouter();
   const { id } = useLocalSearchParams<{ id: string }>();
 
-  const { getSongInfo, position: currentTime } = usePlayerStore();
+  const { getSongInfo } = usePlayerStore();
 
   const handleForwardPosition = usePlayerStore((s) => s.handleForwardPosition);
   const handlebackwardPosition = usePlayerStore(
@@ -73,13 +74,16 @@ export default function SyncLyricsScreen() {
     })();
   }, [getSongInfo, handleChangeSongPosition, id]);
 
-  const handleTapLine = (index: number) => {
+  const { position: currentTime } = useProgress(100);
+
+  const handleTapLine = async (index: number) => {
     const text = lyrics[index];
     if (!text) return;
 
     // get current playback time from your store (currentTime is in seconds or ms depending on your app)
     // here I assume usePlayerStore gives currentTime in seconds (adjust if ms)
-    const current = usePlayerStore.getState().position;
+    const getProgress = await TrackPlayer.getProgress();
+    const current = getProgress.position;
 
     setSynced((prev) => {
       // if there's already an entry for this index, replace it

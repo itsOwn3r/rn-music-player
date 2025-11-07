@@ -195,8 +195,7 @@ export const usePlayerStore = create<PlayerStore>()(
         }
       },
 
-      setProgress: (position, duration) =>
-        set({ position, duration: duration }),
+      setProgress: (position, duration) => set({ position, duration }),
       playFile: async (file: Song, duration?: number) => {
         const { incrementPlayCount } = get();
 
@@ -374,6 +373,9 @@ export const usePlayerStore = create<PlayerStore>()(
         const { currentSong, position } = get();
         const state = await TrackPlayer.getPlaybackState();
 
+        const getProgress = await TrackPlayer.getProgress();
+        const playerPosition = getProgress.position;
+
         if (state.state === State.Stopped && currentSong) {
           await TrackPlayer.reset();
           const uri = currentSong.localUri ?? currentSong.uri;
@@ -389,9 +391,13 @@ export const usePlayerStore = create<PlayerStore>()(
             },
             { id: "placeholder", url: uri, title: currentSong.title },
           ]);
-          set({ currentSong: currentSong, isPlaying: true, position });
+          set({
+            currentSong: currentSong,
+            isPlaying: true,
+            position: position ?? playerPosition,
+          });
 
-          await TrackPlayer.seekTo(position);
+          await TrackPlayer.seekTo(position ?? playerPosition);
           await TrackPlayer.play();
         } else if (state.state === State.Playing) {
           await TrackPlayer.pause();
@@ -487,15 +493,11 @@ export const usePlayerStore = create<PlayerStore>()(
           repeat,
           setIsPlaying,
           currentSong,
-          position,
           shuffle,
           incrementPlayCount,
         } = get();
 
         if (!queue.length) return;
-
-        // Guard against auto-advance firing too early
-        if (method === "update" && position < 10) return;
 
         // Debounce multiple "update" triggers
         const now = Date.now();

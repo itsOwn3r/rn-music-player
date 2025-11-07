@@ -40,6 +40,8 @@ export default function PlayingScreen() {
   const router = useRouter();
   const translateY = useSharedValue(0);
 
+  const queue = usePlayerStore((s) => s.queue);
+
   const toggleFavorite = usePlaylistStore((s) => s.toggleFavorite);
 
   const setLyrics = usePlayerStore((s) => s.setLyrics);
@@ -99,6 +101,10 @@ export default function PlayingScreen() {
   const cardStyle = useAnimatedStyle(() => ({
     transform: [{ translateY: translateY.value }],
   }));
+
+  const queueLength = queue.length;
+  const currentSongIndexInQueue =
+    queue.findIndex((song) => currentSong?.id === song.id) + 1;
 
   return (
     <SafeAreaView className="flex-1">
@@ -284,7 +290,13 @@ export default function PlayingScreen() {
                 </TouchableOpacity>
               </View>
               {/* Time Labels */}
-              <ProgressBar />
+              <ProgressBar
+                queueIndex={
+                  currentSongIndexInQueue && queueLength
+                    ? `${currentSongIndexInQueue}/${queueLength}`
+                    : 0
+                }
+              />
               {/* Controls */}
               <View className="w-full flex flex-row justify-evenly items-center mt-2">
                 <View className="flex-row items-center justify-center">
