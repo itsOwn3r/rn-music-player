@@ -4,7 +4,7 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
@@ -217,7 +217,15 @@ const SongInfoScreen = () => {
 
           <View className="flex-row justify-center mt-3 space-x-3">
             {song.album && (
-              <Text className="text-gray-400 text-sm">🎵 {song.album}</Text>
+              <Link
+                href={{
+                  pathname: "/album/[name]",
+                  params: { name: song.album },
+                }}
+                className="text-gray-400 text-sm"
+              >
+                🎵 {song.album}
+              </Link>
             )}
             {song.year && (
               <Text className="text-gray-400 text-sm">📅 {song.year}</Text>
@@ -231,11 +239,13 @@ const SongInfoScreen = () => {
                 {formatDuration(song.duration)}
               </Text>
             </View>
-            <View className="flex-row items-center space-x-2">
-              {song.size && song.size > 0 && (
+            {song.size && song.size > 0 ? (
+              <View className="flex-row items-center space-x-2">
                 <Text className="text-gray-400 text-sm">💾 {song.size} MB</Text>
-              )}
-            </View>
+              </View>
+            ) : (
+              <Text className="hidden">MB</Text>
+            )}
             <View className="flex-row items-center space-x-2">
               <Text className="text-gray-400 text-sm">
                 ▶️ {song.playCount || 0} plays

@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { toast } from "sonner-native";
 
 type TrackShortcutsMenuProps = PropsWithChildren<{
   track: Song;
@@ -59,6 +60,18 @@ const TrackShortcutsMenu = ({
     removeTrackFromPlaylist(playlistId, track.id || "");
   };
 
+  const goToAlbum = () => {
+    if (!track.album) {
+      toast.error("Sorry! There is no Album");
+      return;
+    }
+    router.push({
+      pathname: "/album/[name]",
+      params: { name: track.album },
+    });
+    setVisible(false);
+  };
+
   const openMenu = () => {
     if (Platform.OS === "ios") {
       const favoriteLabel = isFavorite
@@ -100,6 +113,15 @@ const TrackShortcutsMenu = ({
             >
               <Text className="text-base text-gray-100">⬇ Fetch Lyrics</Text>
             </TouchableOpacity>
+
+            {track.album && (
+              <TouchableOpacity
+                className="px-5 py-4 border-b border-white/10"
+                onPress={goToAlbum}
+              >
+                <Text className="text-base text-gray-100">🎶 Show Album</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"

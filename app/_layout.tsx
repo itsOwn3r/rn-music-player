@@ -120,6 +120,13 @@ export default function Layout() {
           />
 
           <Stack.Screen
+            name="album"
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
             name="notification.click"
             options={{
               headerShown: false,

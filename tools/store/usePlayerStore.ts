@@ -5,6 +5,7 @@ import {
   addSongToPlaylist,
   createPlaylist,
   editSong,
+  getAlbum,
   getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
@@ -110,6 +111,7 @@ type PlayerStore = {
   downloadFile: (id: string, remoteUri: string) => void;
   incrementPlayCount: (id: string | null | undefined) => void;
   getSongInfo: (id: string) => Promise<Song | null>;
+  getAlbum: (id: string) => Promise<Song[] | null>;
   updateSongSyncedLyrics: (id: string, syncedLyrics: string) => void;
 };
 
@@ -709,6 +711,10 @@ export const usePlayerStore = create<PlayerStore>()(
       },
       getSongInfo: async (id: string) => {
         const songInfo = await getSongInfoFromDB(id);
+        return songInfo;
+      },
+      getAlbum: async (name: string) => {
+        const songInfo = await getAlbum(name);
         return songInfo;
       },
       updateSongSyncedLyrics: async (id: string, syncedLyrics: string) => {

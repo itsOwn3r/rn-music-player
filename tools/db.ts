@@ -149,6 +149,15 @@ export async function getAllSongs(): Promise<Song[]> {
   return rows as Song[];
 }
 
+export async function getAlbum(album: string): Promise<Song[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync(
+    `SELECT * FROM songs WHERE album = ? ORDER BY date DESC`,
+    [album]
+  );
+  return rows as Song[];
+}
+
 export async function getSongInfoFromDB(id: string): Promise<Song | null> {
   if (!id) return null;
   const db = await getDB();
