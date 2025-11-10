@@ -232,6 +232,11 @@ const SongInfoScreen = () => {
               </Text>
             </View>
             <View className="flex-row items-center space-x-2">
+              {song.size && song.size > 0 && (
+                <Text className="text-gray-400 text-sm">💾 {song.size} MB</Text>
+              )}
+            </View>
+            <View className="flex-row items-center space-x-2">
               <Text className="text-gray-400 text-sm">
                 ▶️ {song.playCount || 0} plays
               </Text>

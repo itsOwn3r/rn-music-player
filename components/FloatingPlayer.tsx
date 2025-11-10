@@ -2,7 +2,7 @@ import coverImage from "@/assets/placeholder2.jpg";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { useRouter } from "expo-router";
 import React from "react";
-import { Image, Pressable, Text, View } from "react-native";
+import { Image, Pressable, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 import TextTicker from "react-native-text-ticker";
 import {
@@ -65,9 +65,17 @@ const FloatingPlayer = () => {
             >
               {currentSong.title}
             </TextTicker>
-            <Text className="text-lg font-semibold pl-2 text-white">
+            <TextTicker
+              duration={11000}
+              loop
+              bounce
+              scroll
+              repeatSpacer={50}
+              className="text-lg font-semibold pl-2 text-white"
+              marqueeDelay={2000}
+            >
               {currentSong.artist}
-            </Text>
+            </TextTicker>
           </View>
         </Pressable>
 

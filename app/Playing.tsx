@@ -201,7 +201,10 @@ export default function PlayingScreen() {
                     />
                   </View>
                 ) : (
-                  <View className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center size-full">
+                  <TouchableOpacity
+                    onLongPress={toggleShowLyrics}
+                    className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center size-full"
+                  >
                     <Text className="text-white text-2xl">No Lyrics :(</Text>
                     <TouchableOpacity
                       onPress={() =>
@@ -213,7 +216,7 @@ export default function PlayingScreen() {
                     >
                       <MaterialIcons name="download" size={20} color="#fff" />
                     </TouchableOpacity>
-                  </View>
+                  </TouchableOpacity>
                 ))}
             </View>
             <View
@@ -262,8 +265,19 @@ export default function PlayingScreen() {
                     }}
                     replace={true}
                     className="text-center text-base text-gray-400 font-semibold mb-1"
+                    asChild
                   >
-                    {currentSong ? currentSong.artist : "Artist Name"}
+                    <TextTicker
+                      duration={11000}
+                      loop
+                      bounce
+                      scroll
+                      repeatSpacer={50}
+                      className="text-center text-base text-gray-400 font-semibold mb-1"
+                      marqueeDelay={2000}
+                    >
+                      {currentSong ? currentSong.artist : "Artist Name"}
+                    </TextTicker>
                   </Link>
                 </View>
                 <TouchableOpacity
