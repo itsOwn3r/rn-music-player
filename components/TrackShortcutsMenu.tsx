@@ -114,6 +114,18 @@ const TrackShortcutsMenu = ({
               <Text className="text-base text-gray-100">⬇ Fetch Lyrics</Text>
             </TouchableOpacity>
 
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={() =>
+                router.push({
+                  pathname: "/(tabs)/artists/[name]",
+                  params: { name: track.artist || "" },
+                })
+              }
+            >
+              <Text className="text-base text-gray-100">🎙 Show Artist</Text>
+            </TouchableOpacity>
+
             {track.album && (
               <TouchableOpacity
                 className="px-5 py-4 border-b border-white/10"

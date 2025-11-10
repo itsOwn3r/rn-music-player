@@ -8,7 +8,6 @@ import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Image,
-  ScrollView,
   Text,
   TextInput,
   TouchableHighlight,
@@ -105,16 +104,13 @@ const ArtistsScreen = () => {
         </View>
       </View>
 
-      <ScrollView
-        className="px-6 pt-16"
-        contentInsetAdjustmentBehavior="automatic"
-      >
+      <View className="px-6 pt-16">
         <FlatList
           data={filteredArtists}
-          contentContainerStyle={{ paddingTop: 10, paddingBottom: 120 }}
-          scrollEnabled={false}
+          scrollEnabled={true}
           ItemSeparatorComponent={ItemSeparatorComponent}
           ListFooterComponent={ItemSeparatorComponent}
+          contentContainerStyle={{ paddingTop: 15, paddingBottom: 140 }}
           ListEmptyComponent={
             <View>
               <Text>No Artist Found!</Text>
@@ -158,7 +154,7 @@ const ArtistsScreen = () => {
             );
           }}
         />
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };

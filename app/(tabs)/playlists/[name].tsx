@@ -7,6 +7,7 @@ import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const PlaylistScreen = () => {
   const { name: playlistId } = useLocalSearchParams<{ name: string }>();
@@ -53,6 +54,7 @@ const PlaylistScreen = () => {
 
   if (!playlist) {
     console.warn(`Playlist ${playlistId} was not found!`);
+    toast.warning(`Playlist ${playlistId} was not found!`);
     return <Redirect href={"/(tabs)/playlists"} />;
   }
 

@@ -23,6 +23,7 @@ import Animated, {
   withTiming,
 } from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const AnimatedButton = ({
   label,
@@ -132,6 +133,7 @@ const SongInfoScreen = () => {
 
   if (!id) {
     console.warn(`Song with ${id} was not found!`);
+    toast.warning(`Song with ${id} was not found!`);
     return <Redirect href={"/(tabs)/playlists"} />;
   }
 
