@@ -817,6 +817,25 @@ export const usePlaylistStore = create<{
   },
 
   addTrackToPlaylist: async (playlistId, songId) => {
+    const { favorites } = get();
+
+    if (playlistId === "favorites") {
+      if (!favorites.find((fav) => fav.id === songId)) {
+        const mutatableFavorites = favorites;
+
+        const getSongInfo = usePlayerStore.getState().getSongInfo;
+        const song = await getSongInfo(songId);
+        if (!song) {
+          toast.error("Something went wrong! The song coundn't be found!");
+          return;
+        }
+        mutatableFavorites.push(song);
+        set(() => ({
+          favorites: mutatableFavorites,
+        }));
+      }
+    }
+
     await addSongToPlaylist(playlistId, songId);
     await get().loadPlaylists("all");
   },
