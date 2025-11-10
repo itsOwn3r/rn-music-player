@@ -11,6 +11,7 @@ import {
   Image,
   ScrollView,
   Text,
+  TouchableOpacity,
   TouchableWithoutFeedback,
   View,
 } from "react-native";
@@ -21,6 +22,7 @@ import Animated, {
   withSequence,
   withTiming,
 } from "react-native-reanimated";
+import { SafeAreaView } from "react-native-safe-area-context";
 
 const AnimatedButton = ({
   label,
@@ -150,7 +152,21 @@ const SongInfoScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black">
+      <View className="flex-row items-center justify-between px-5 pt-3 z-10">
+        <TouchableOpacity className="z-50" onPress={() => router.back()}>
+          <MaterialIcons
+            className="z-50"
+            name="arrow-back"
+            size={26}
+            color="#fff"
+          />
+        </TouchableOpacity>
+        <Text className="text-white text-lg font-bold">Song Info</Text>
+        <View className="opacity-0">
+          <Text>Go</Text>
+        </View>
+      </View>
       {/* Blurred background using coverArt */}
       {song.coverArt && (
         <Image
@@ -159,7 +175,12 @@ const SongInfoScreen = () => {
           className="absolute w-full h-full"
         />
       )}
-      <BlurView intensity={80} tint="dark" className="absolute w-full h-full" />
+      <BlurView
+        intensity={80}
+        tint="dark"
+        className="absolute w-full h-full"
+        pointerEvents="none"
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -273,7 +294,7 @@ const SongInfoScreen = () => {
           />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

@@ -40,3 +40,17 @@ export type Playlist = {
   createdAt: number;
   updatedAt: number;
 };
+
+export type Album = {
+  id: string;
+  name: string;
+  artistId: string;
+  artistName: string;
+  coverArt?: string;
+  songs: Song[];
+  releaseDate: number;
+  duration: number;
+  genre?: string;
+  createdAt: number;
+  updatedAt: number;
+};

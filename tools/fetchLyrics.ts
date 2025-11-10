@@ -1,4 +1,5 @@
 import { Song } from "@/types/types";
+import { toast } from "sonner-native";
 import { addLyrics } from "./db";
 
 export const fetchLyrics = async (
@@ -33,6 +34,7 @@ export const fetchLyrics = async (
         return response.plainLyrics;
       }
     } else {
+      toast.info("No Lyrics available!");
       return null;
     }
   } catch (error) {

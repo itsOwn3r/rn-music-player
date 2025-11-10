@@ -516,7 +516,7 @@ export const usePlayerStore = create<PlayerStore>()(
         _lastQueueAdvance = now;
 
         // Handle repeat-one
-        if (repeat === "one") {
+        if (repeat === "one" && method === "update") {
           await TrackPlayer.seekTo(0);
           await TrackPlayer.play();
           setIsPlaying(true);
@@ -887,5 +887,5 @@ TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
 TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
   const queue = usePlayerStore.getState().queue;
   if (queue.length > 0)
-    await usePlayerStore.getState().playAnotherSongInQueue("next");
+    await usePlayerStore.getState().playAnotherSongInQueue("next", "update");
 });

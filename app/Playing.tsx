@@ -13,6 +13,7 @@ import SyncedLyrics from "@/components/SyncedLyrics";
 import { handleFetchingLyrics } from "@/tools/handleFetchingLyrics";
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
+import { BlurView } from "expo-blur";
 import { Link, useRouter } from "expo-router";
 import React from "react";
 import {
@@ -135,6 +136,21 @@ export default function PlayingScreen() {
             cardStyle,
           ]}
         >
+          {/* <View className="flex-1 size-full z-50"> */}
+          <Image
+            source={
+              currentSong?.coverArt ? { uri: currentSong.coverArt } : coverImage
+            }
+            blurRadius={30}
+            className="absolute w-full h-full"
+          />
+
+          <BlurView
+            intensity={80}
+            tint="dark"
+            className="absolute w-full h-full"
+          />
+          {/* </View> */}
           <DismissPlayerSymbol />
           {/* Your player content goes here */}
           <View className="mt-20" style={{ height: "100%" }}>
@@ -164,6 +180,7 @@ export default function PlayingScreen() {
                     alignSelf: "center",
                     width: "100%",
                     height: "100%",
+                    objectFit: "fill",
                   }}
                 />
               </TouchableOpacity>
