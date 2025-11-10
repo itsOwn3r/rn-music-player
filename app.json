@@ -1,11 +1,11 @@
 {
   "expo": {
-    "name": "Lori",
-    "slug": "Lori",
+    "name": "Music Player",
+    "slug": "Music-Player",
     "version": "1.0.0",
     "orientation": "portrait",
     "icon": "./assets/images/icon.png",
-    "scheme": "lori",
+    "scheme": "music-player",
     "userInterfaceStyle": "dark",
     "newArchEnabled": true,
     "ios": {
@@ -25,7 +25,7 @@
         "WAKE_LOCK",
         "FOREGROUND_SERVICE"
       ],
-      "package": "com.lori.app",
+      "package": "com.own3r.player",
       "versionCode": 1,
       "adaptiveIcon": {
         "foregroundImage": "./assets/images/adaptive-icon.png",

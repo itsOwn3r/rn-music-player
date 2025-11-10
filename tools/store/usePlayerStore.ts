@@ -4,6 +4,7 @@ import {
   addSong,
   addSongToPlaylist,
   createPlaylist,
+  editSong,
   getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
@@ -97,6 +98,13 @@ type PlayerStore = {
   setFiles: (files: Song[]) => void;
   setAllFiles: (files: Song[]) => void;
   setLyrics: (id: string, lyrics: string, syncedLyrics?: string) => void;
+  editSong: (
+    id: string,
+    title: string,
+    artist: string,
+    album?: string,
+    year?: string
+  ) => Promise<null | undefined>;
 
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
@@ -611,8 +619,23 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
+        const { currentSong } = get();
+
         await addLyrics(id, lyrics, syncedLyrics ? syncedLyrics : null);
         toast.success(`Lyrics added!`);
+
+        if (currentSong?.id === id) {
+          const mutatableCurrentSong = currentSong;
+          mutatableCurrentSong.lyrics = lyrics;
+          mutatableCurrentSong.syncedLyrics = syncedLyrics
+            ? syncedLyrics
+            : null;
+
+          set(() => ({
+            currentSong: mutatableCurrentSong,
+          }));
+        }
+
         set((state) => ({
           files: state.files.map((f) =>
             f.id === id
@@ -620,6 +643,49 @@ export const usePlayerStore = create<PlayerStore>()(
                   ...f,
                   lyrics,
                   ...(syncedLyrics ? { syncedLyrics } : {}), // 👈 only add if defined
+                }
+              : f
+          ),
+        }));
+      },
+      editSong: async (
+        id: string,
+        title: string,
+        artist: string,
+        album?: string,
+        year?: string
+      ) => {
+        if (!id || !title || !artist) {
+          toast.error("You must ented the required fields: Title, Artist!");
+          return null;
+        }
+
+        const { currentSong } = get();
+
+        await editSong(id, title, artist, album, year);
+        toast.success(`Song Edited!`);
+
+        if (currentSong?.id === id) {
+          const mutatableCurrentSong = currentSong;
+          mutatableCurrentSong.title = title;
+          mutatableCurrentSong.artist = artist;
+          mutatableCurrentSong.album = album || "";
+          mutatableCurrentSong.year = year;
+
+          set(() => ({
+            currentSong: mutatableCurrentSong,
+          }));
+        }
+
+        set((state) => ({
+          files: state.files.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  title,
+                  artist,
+                  album: album || " ",
+                  year,
                 }
               : f
           ),

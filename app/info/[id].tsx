@@ -258,6 +258,19 @@ const SongInfoScreen = () => {
             }
             onPress={() => fetchingLyrics()}
           />
+
+          <View className="border-cyan-600 border-1" />
+
+          <AnimatedButton
+            color="green"
+            label="Edit Song"
+            onPress={() =>
+              router.push({
+                pathname: "/edit/[id]",
+                params: { id: song.id || "" },
+              })
+            }
+          />
         </View>
       </ScrollView>
     </View>

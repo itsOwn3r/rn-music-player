@@ -162,7 +162,7 @@ export default function SyncLyricsScreen() {
         </TouchableOpacity>
         <Text className="text-white text-lg font-bold">Sync Lyrics</Text>
         <TouchableOpacity onPress={handleSave}>
-          <MaterialIcons name="save-alt" size={26} color="#22c55e" />
+          <FontAwesome6 name="check" size={26} color="#22c55e" />
         </TouchableOpacity>
       </View>
 

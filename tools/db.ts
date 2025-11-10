@@ -166,6 +166,25 @@ export async function clearSongs() {
   await db.execAsync(`DELETE FROM songs`);
 }
 
+export async function editSong(
+  songId: string,
+  title: string,
+  artist: string,
+  album?: string,
+  year?: string
+) {
+  try {
+    const db = await getDB();
+    await db.runAsync(
+      "UPDATE songs SET title = ?, artist = ?, album = ?, year = ? WHERE id = ?",
+      [title, artist, album || null, year || null, songId]
+    );
+  } catch (error) {
+    console.log(error);
+    toast.error(`Error: ${error}`);
+  }
+}
+
 export async function addLyrics(
   songId: string,
   lyrics: string,

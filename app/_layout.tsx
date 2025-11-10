@@ -113,6 +113,13 @@ export default function Layout() {
           />
 
           <Stack.Screen
+            name="edit"
+            options={{
+              headerShown: false,
+            }}
+          />
+
+          <Stack.Screen
             name="notification.click"
             options={{
               headerShown: false,
