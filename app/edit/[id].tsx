@@ -65,9 +65,12 @@ const EditSongScreen = () => {
     );
   // console.log(song);
   return (
-    <SafeAreaView className="flex-1 bg-black b z-50">
+    <SafeAreaView className="flex-1 bg-black b z-50" pointerEvents="box-none">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-3 z-50">
+      <View
+        className="flex-row items-center justify-between px-5 pt-3 z-50"
+        style={{ elevation: 10 }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>

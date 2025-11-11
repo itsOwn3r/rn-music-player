@@ -120,9 +120,12 @@ export default function EditSyncedLyricsScreen() {
     );
 
   return (
-    <SafeAreaView className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black" pointerEvents="box-none">
       {/* Header */}
-      <View className="flex-row items-center justify-between px-5 pt-3">
+      <View
+        className="flex-row items-center justify-between px-5 pt-3"
+        style={{ elevation: 10 }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
