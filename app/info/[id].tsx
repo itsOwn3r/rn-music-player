@@ -1,3 +1,4 @@
+import { AnimatedButton } from "@/components/AnimatedButton";
 import formatDuration from "@/tools/formatDuration";
 import { handleFetchingLyrics } from "@/tools/handleFetchingLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
@@ -12,85 +13,10 @@ import {
   ScrollView,
   Text,
   TouchableOpacity,
-  TouchableWithoutFeedback,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
-
-const AnimatedButton = ({
-  label,
-  disabled,
-  color,
-  onPress,
-}: {
-  label: string;
-  disabled?: boolean;
-  color: "green" | "cyan";
-  onPress?: () => void;
-}) => {
-  const scale = useSharedValue(1);
-  const glow = useSharedValue(0.4);
-
-  // subtle breathing glow effect
-  React.useEffect(() => {
-    glow.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500 }),
-        withTiming(0.4, { duration: 1500 })
-      ),
-      -1,
-      true
-    );
-  }, [glow]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    shadowOpacity: glow.value,
-    shadowRadius: 30 * glow.value,
-  }));
-
-  const bgColor =
-    color === "green"
-      ? disabled
-        ? "bg-gray-700"
-        : "bg-green-600"
-      : disabled
-        ? "bg-gray-700"
-        : "bg-cyan-600";
-
-  const shadowColor =
-    color === "green" ? "shadow-green-400/60" : "shadow-cyan-400/60";
-
-  return (
-    <TouchableWithoutFeedback
-      onPressIn={() => (scale.value = withTiming(0.96, { duration: 100 }))}
-      onPressOut={() => (scale.value = withTiming(1, { duration: 150 }))}
-      disabled={disabled}
-      onPress={onPress ? onPress : undefined}
-    >
-      <Animated.View
-        className={`py-4 rounded-2xl items-center shadow-lg ${bgColor} ${shadowColor}`}
-        style={animatedStyle}
-      >
-        <Text
-          className={`text-white text-base font-semibold tracking-wide ${
-            disabled ? "opacity-70" : ""
-          }`}
-        >
-          {label}
-        </Text>
-      </Animated.View>
-    </TouchableWithoutFeedback>
-  );
-};
 
 const SongInfoScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -263,7 +189,9 @@ const SongInfoScreen = () => {
             label={!!song.lyrics ? "Edit Lyrics?" : "Add Lyrics"}
             onPress={() =>
               router.push({
-                pathname: "/lyrics/edit/[id]",
+                pathname: !!song.syncedLyrics
+                  ? "/lyrics/editsynced/[id]"
+                  : "/lyrics/edit/[id]",
                 params: { id: song.id || "" },
               })
             }
@@ -275,7 +203,7 @@ const SongInfoScreen = () => {
             label={
               song.lyrics
                 ? song.syncedLyrics
-                  ? "Edit Synced Lyrics"
+                  ? "Edit Synced timestamps"
                   : "Sync Lyrics"
                 : "Fetch/Add Lyrics first"
             }
