@@ -222,7 +222,7 @@ const SongInfoScreen = () => {
               <Link
                 href={{
                   pathname: "/album/[name]",
-                  params: { name: song.album },
+                  params: { name: song.album.replaceAll(" ", "+") },
                 }}
                 className="text-gray-400 text-sm"
               >

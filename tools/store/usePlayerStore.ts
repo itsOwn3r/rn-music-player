@@ -621,9 +621,17 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
-        const { currentSong } = get();
+        const { currentSong, getSongInfo } = get();
 
-        await addLyrics(id, lyrics, syncedLyrics ? syncedLyrics : null);
+        const song = await getSongInfo(id);
+
+        const synced = song?.syncedLyrics
+          ? song?.syncedLyrics
+          : syncedLyrics
+            ? syncedLyrics
+            : null;
+
+        await addLyrics(id, lyrics, synced);
         toast.success(`Lyrics added!`);
 
         if (currentSong?.id === id) {

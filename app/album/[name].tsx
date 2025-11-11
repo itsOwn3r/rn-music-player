@@ -18,12 +18,14 @@ const AlbumScreen = () => {
 
   const router = useRouter();
 
+  const albumName = name.replaceAll("+", " ");
+
   useEffect(() => {
     (async () => {
-      const songs = await getAlbum(name);
+      const songs = await getAlbum(albumName);
       setFetchedSongs(songs);
     })();
-  }, [getAlbum, name]);
+  }, [getAlbum, albumName]);
 
   if (!fetchedSongs) {
     return <LoadingScreen />;
@@ -58,7 +60,7 @@ const AlbumScreen = () => {
       </View>
 
       <View className="flex-1 size-full flex items-center">
-        <View className="px-3 mt-8 pb-32 size-full">
+        <View className="px-3 mt-8 pb-8 size-full">
           <TracksList
             scrollEnabled={true}
             hideQueueControls={false}
@@ -66,7 +68,7 @@ const AlbumScreen = () => {
             isInPlaylist={false}
             playlistId={album.id}
             tracks={album.songs}
-            contentContainerStyle={{ paddingBottom: 50 }}
+            contentContainerStyle={{ paddingBottom: 25 }}
             ListHeaderComponent={
               <View className="items-center mt-6 w-full hf">
                 <Image

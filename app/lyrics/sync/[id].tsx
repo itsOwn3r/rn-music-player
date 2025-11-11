@@ -11,7 +11,10 @@ import Animated, {
   useSharedValue,
   withTiming,
 } from "react-native-reanimated";
-import { SafeAreaView } from "react-native-safe-area-context";
+import {
+  SafeAreaView,
+  useSafeAreaInsets,
+} from "react-native-safe-area-context";
 import TrackPlayer, { useProgress } from "react-native-track-player";
 
 export default function SyncLyricsScreen() {
@@ -142,8 +145,12 @@ export default function SyncLyricsScreen() {
     if (!time) {
       return;
     }
+    const newSynced = synced.filter((c) => c.time <= time);
+    setSynced(newSynced);
     handleChangeSongPosition(time);
   };
+
+  const { bottom } = useSafeAreaInsets();
 
   if (!song) {
     return (
@@ -161,7 +168,7 @@ export default function SyncLyricsScreen() {
           <MaterialIcons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
         <Text className="text-white text-lg font-bold">Sync Lyrics</Text>
-        <TouchableOpacity onPress={handleSave}>
+        <TouchableOpacity onPress={handleSave} className="z-50">
           <FontAwesome6 name="check" size={26} color="#22c55e" />
         </TouchableOpacity>
       </View>
@@ -227,9 +234,21 @@ export default function SyncLyricsScreen() {
       </Animated.ScrollView>
 
       {/* Floating Controls */}
-      <View className="absolute bottom-0 left-0 right-0 py-6 bg-black/70 border-t border-neutral-800">
+      <View
+        className="absolute left-0 right-0 py-6 bg-black/70 border-t border-neutral-800"
+        style={{ bottom: bottom === 0 ? bottom : bottom - 20 }}
+      >
         <View className="flex-row justify-center items-center space-x-6">
           {/* Play/Pause */}
+          <View className="flex-row items-center justify-center">
+            <TouchableOpacity
+              onPress={() => handleSave()}
+              activeOpacity={0.8}
+              className="bg-green-600 w-16 h-16 rounded-full items-center justify-center shadow-lg shadow-green-500/50 right-7 absolute"
+            >
+              <MaterialIcons name="save" size={28} color="#fff" />
+            </TouchableOpacity>
+          </View>
           <View className="flex-row items-center justify-center w-14">
             <TouchableOpacity
               className="flex-row justify-center items-center"
@@ -238,11 +257,9 @@ export default function SyncLyricsScreen() {
               <FontAwesome6 name="forward-step" size={30} color="#fff" />
             </TouchableOpacity>
           </View>
-
           <View className="flex-row items-center justify-center w-14">
             <PlayPauseButton iconSize={30} />
           </View>
-
           <View className="flex-row items-center justify-center w-14">
             <TouchableOpacity
               className="flex-row justify-center items-center"
@@ -251,14 +268,15 @@ export default function SyncLyricsScreen() {
               <FontAwesome6 name="forward-step" size={30} color="#fff" />
             </TouchableOpacity>
           </View>
-
           {/* Sync Button */}
           <TouchableOpacity
             onPress={() =>
               handleTapLine(
                 synced.length < lyrics.length
                   ? synced.length
-                  : lyrics.length - 1
+                  : synced.length === lyrics.length
+                    ? 0
+                    : lyrics.length - 1
               )
             }
             activeOpacity={0.8}

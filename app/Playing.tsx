@@ -15,16 +15,18 @@ import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { FontAwesome, MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
 import { Link, useRouter } from "expo-router";
-import React from "react";
+import React, { useState } from "react";
 import {
   Dimensions,
   Image,
+  Pressable,
   StyleSheet,
   Text,
   TouchableOpacity,
   View,
 } from "react-native";
 import { Gesture, GestureDetector } from "react-native-gesture-handler";
+import Modal from "react-native-modal";
 import Animated, {
   runOnJS,
   useAnimatedStyle,
@@ -106,6 +108,37 @@ export default function PlayingScreen() {
   const queueLength = queue.length;
   const currentSongIndexInQueue =
     queue.findIndex((song) => currentSong?.id === song.id) + 1;
+
+  const [isOptionsVisible, setOptionsVisible] = useState(false);
+
+  const openOptions = () => setOptionsVisible(true);
+  const closeOptions = () => setOptionsVisible(false);
+
+  const handleOption = (action: string) => {
+    closeOptions();
+    switch (action) {
+      case "toggleLyrics":
+        setOptionsVisible(false);
+        toggleShowLyrics();
+        break;
+      case "showInfo":
+        setOptionsVisible(false);
+        router.navigate({
+          pathname: "/info/[id]",
+          params: { id: currentSong?.id ?? "" },
+        });
+        break;
+      case "showAlbum":
+        setOptionsVisible(false);
+        router.navigate({
+          pathname: "/album/[name]",
+          params: {
+            name: currentSong?.album?.replaceAll(" ", "+") || "Unknown+Album",
+          },
+        });
+        break;
+    }
+  };
 
   return (
     <SafeAreaView className="flex-1">
@@ -192,7 +225,7 @@ export default function PlayingScreen() {
                     // onLongPress={toggleShowLyrics}
                   >
                     <SyncedLyrics
-                      toggleShowLyrics={toggleShowLyrics}
+                      toggleShowLyrics={openOptions}
                       lrc={
                         currentSong?.syncedLyrics
                           ? currentSong.syncedLyrics
@@ -202,20 +235,41 @@ export default function PlayingScreen() {
                   </View>
                 ) : (
                   <TouchableOpacity
-                    onLongPress={toggleShowLyrics}
+                    onLongPress={openOptions}
                     className="absolute inset-0 z-50 bg-black/50 flex items-center justify-center size-full"
                   >
-                    <Text className="text-white text-2xl">No Lyrics :(</Text>
-                    <TouchableOpacity
-                      onPress={() =>
-                        handleFetchingLyrics({ currentSong, setLyrics })
-                      }
-                      activeOpacity={0.8}
-                      className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
-                      // style={{ opacity: isActive === false ? 0.5 : 1 }}
-                    >
-                      <MaterialIcons name="download" size={20} color="#fff" />
-                    </TouchableOpacity>
+                    <Text className="text-white text-2xl">
+                      No Lyrics Yet :(
+                    </Text>
+                    <View className="flex flex-row gap-x-3">
+                      <TouchableOpacity
+                        onPress={() =>
+                          handleFetchingLyrics({ currentSong, setLyrics })
+                        }
+                        activeOpacity={0.8}
+                        className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
+                        // style={{ opacity: isActive === false ? 0.5 : 1 }}
+                      >
+                        <MaterialIcons name="download" size={20} color="#fff" />
+                      </TouchableOpacity>
+                      <TouchableOpacity
+                        onPress={() =>
+                          router.navigate({
+                            pathname: "/lyrics/edit/[id]",
+                            params: { id: currentSong?.id || "" },
+                          })
+                        }
+                        activeOpacity={0.8}
+                        className="size-14 rounded-full bg-[#74b808] border border-[#2b2b2b] justify-center items-center mt-4"
+                        // style={{ opacity: isActive === false ? 0.5 : 1 }}
+                      >
+                        <MaterialIcons
+                          name="add-circle"
+                          size={20}
+                          color="#fff"
+                        />
+                      </TouchableOpacity>
+                    </View>
                   </TouchableOpacity>
                 ))}
             </View>
@@ -329,7 +383,19 @@ export default function PlayingScreen() {
                 }
               />
               {/* Controls */}
-              <View className="w-full flex flex-row justify-evenly items-center mt-2">
+              <View
+                style={{
+                  // backgroundColor: "rgba(0,0,0,0.25)",
+                  borderRadius: 60,
+                  marginTop: 10,
+                  shadowColor: "#000",
+                  shadowOffset: { width: 0, height: 4 },
+                  shadowOpacity: 0.3,
+                  shadowRadius: 16,
+                  elevation: 15,
+                }}
+                className="w-full flex flex-row justify-evenly items-center px-4 py-3"
+              >
                 <View className="flex-row items-center justify-center">
                   <ShuffleHandler iconSize={21} />
                 </View>
@@ -353,10 +419,45 @@ export default function PlayingScreen() {
                   />
                 </View>
               </View>
+
               <PlayerVolumeBar />
               {/* <PlayerFooter currentSong={currentSong} /> */}
             </View>
           </View>
+          <Modal
+            isVisible={isOptionsVisible}
+            onBackdropPress={closeOptions}
+            backdropOpacity={0.6}
+            style={{ justifyContent: "flex-end", margin: 0 }}
+          >
+            <View className="bg-[#1a1a1a] rounded-t-3xl p-5 pb-8 border-t border-gray-700">
+              <Text className="text-white text-lg font-bold mb-4 text-center">
+                Song Options
+              </Text>
+
+              {[
+                { label: "Show/Hide Lyrics", action: "toggleLyrics" },
+                { label: "Show Song Info", action: "showInfo" },
+                { label: "Show Album", action: "showAlbum" },
+              ].map(({ label, action }) => (
+                <Pressable
+                  key={action}
+                  onPress={() => handleOption(action)}
+                  className="py-3 rounded-xl mb-2 bg-[#2a2a2a] active:bg-[#3b3b3b]"
+                >
+                  <Text className="text-white text-center text-base font-semibold">
+                    {label}
+                  </Text>
+                </Pressable>
+              ))}
+
+              <Pressable onPress={closeOptions} className="mt-3">
+                <Text className="text-gray-400 text-center text-sm">
+                  Cancel
+                </Text>
+              </Pressable>
+            </View>
+          </Modal>
         </Animated.View>
       </GestureDetector>
     </SafeAreaView>

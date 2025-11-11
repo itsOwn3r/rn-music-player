@@ -65,11 +65,23 @@ const TrackShortcutsMenu = ({
       toast.error("Sorry! There is no Album");
       return;
     }
-    router.push({
-      pathname: "/album/[name]",
-      params: { name: track.album },
-    });
     setVisible(false);
+    router.navigate({
+      pathname: "/album/[name]",
+      params: { name: track.album.replaceAll(" ", "+") },
+    });
+  };
+
+  const goToArtist = () => {
+    if (!track.artist) {
+      toast.error("Sorry! There is no Artist name");
+      return;
+    }
+    setVisible(false);
+    router.navigate({
+      pathname: "/(tabs)/artists/[name]",
+      params: { name: track.artist },
+    });
   };
 
   const openMenu = () => {
@@ -116,12 +128,7 @@ const TrackShortcutsMenu = ({
 
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"
-              onPress={() =>
-                router.push({
-                  pathname: "/(tabs)/artists/[name]",
-                  params: { name: track.artist || "" },
-                })
-              }
+              onPress={goToArtist}
             >
               <Text className="text-base text-gray-100">🎙 Show Artist</Text>
             </TouchableOpacity>
