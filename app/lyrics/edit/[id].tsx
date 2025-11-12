@@ -66,7 +66,7 @@ const EditLyricsScreen = () => {
     <SafeAreaView className="flex-1 bg-black b z-50" pointerEvents="box-none">
       {/* Header */}
       <View
-        className="absolute top-0 left-0 right-0 flex-row items-center justify-between px-5 pt-3 z-50"
+        className="flex-row items-center justify-between px-5 pt-3"
         style={{ elevation: 10 }}
       >
         <TouchableOpacity onPress={() => router.back()}>
@@ -88,6 +88,7 @@ const EditLyricsScreen = () => {
       <BlurView intensity={80} tint="dark" className="absolute w-full h-full" />
 
       <ScrollView
+        className="flex-1 mt-6"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
