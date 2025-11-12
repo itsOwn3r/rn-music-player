@@ -386,7 +386,10 @@ export const usePlayerStore = create<PlayerStore>()(
         const getProgress = await TrackPlayer.getProgress();
         const playerPosition = getProgress.position;
 
-        if (state.state === State.Stopped && currentSong) {
+        if (
+          (state.state === State.Stopped || state.state === State.None) &&
+          currentSong
+        ) {
           await TrackPlayer.reset();
           const uri = currentSong.localUri ?? currentSong.uri;
 

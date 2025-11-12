@@ -59,7 +59,7 @@ const TracksListItem = memo(
                 </Text>
               </View>
             </View>
-            <View className="flex items-center flex-row gap-x-2">
+            <View className="flex items-center flex-row gap-x-2 -ml-1">
               <Text className="text-xs rounded-full px-1 justify-center items-center text-center bg-slate-700 ">
                 {index + 1}
               </Text>
