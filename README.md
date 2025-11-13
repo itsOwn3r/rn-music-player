@@ -3,6 +3,8 @@
 A modern, offline-capable **Music Player App** built with **Expo**, **React Native**, and **Zustand**.  
 Enjoy your favorite songs with synced lyrics, manage playlists, and edit lyrics — all in one beautifully designed mobile experience.
 
+![photo_2025-11-13_13-49-59](https://github.com/user-attachments/assets/4a8f8363-4798-46e7-a7b6-6b5c510debeb)
+
 ---
 
 ## 🚀 Features
@@ -10,11 +12,14 @@ Enjoy your favorite songs with synced lyrics, manage playlists, and edit lyrics 
 ### 🎧 Core Player
 
 - **Play, Pause, Skip, and Seek** between songs.
+- **Notification Bar and Lock Screen support** control the music.
 - **Queue system** — automatically manages upcoming and previous tracks.
 - **Shuffle & Repeat modes** (`off`, `all`, `one`).
 - **Volume Control** with smooth adjustments.
 - **Persistent playback state** using `zustand/persist` and `AsyncStorage`.
-- **Server player!** check out [Local Sever Player Branch](https://github.com/itsOwn3r/rn-music-player/local-server-player-rntp).
+- **Server player!** check out [Local Sever Player Branch](https://github.com/itsOwn3r/rn-music-player/tree/local-server-player-rntp).
+  
+![photo_2025-11-13_13-49-52](https://github.com/user-attachments/assets/77769611-b725-4810-a5cc-c20f8a456025)
 
 ---
 
@@ -158,3 +163,15 @@ cd android
 | Storage             | [AsyncStorage](https://github.com/react-native-async-storage/async-storage)                              |
 | File Access         | [Storage Access Framework (SAF)](https://developer.android.com/guide/topics/providers/document-provider) |
 | Toast Notifications | [sonner-native](https://github.com/emilkowalski/sonner)                                                  |
+
+## Photos
+ ![photo_2025-11-13_13-50-00](https://github.com/user-attachments/assets/c3a584f6-9fce-47ac-8f50-ba21807598f5)
+
+  
+ ![photo_2025-11-13_13-50-02](https://github.com/user-attachments/assets/e73fc05e-5929-4f1d-860f-616f736219b0)
+
+  
+ ![photo_2025-11-13_13-50-01](https://github.com/user-attachments/assets/7fa13164-5d65-48a6-9bb8-29f99ce5b0f4)
+
+
+
