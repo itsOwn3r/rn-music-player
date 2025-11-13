@@ -1,50 +1,160 @@
-# Welcome to your Expo app 👋
+# 🎵 Music Player App
 
-This is an [Expo](https://expo.dev) project created with [`create-expo-app`](https://www.npmjs.com/package/create-expo-app).
+A modern, offline-capable **Music Player App** built with **Expo**, **React Native**, and **Zustand**.  
+Enjoy your favorite songs with synced lyrics, manage playlists, and edit lyrics — all in one beautifully designed mobile experience.
 
-## Get started
+---
 
-1. Install dependencies
+## 🚀 Features
+
+### 🎧 Core Player
+
+- **Play, Pause, Skip, and Seek** between songs.
+- **Queue system** — automatically manages upcoming and previous tracks.
+- **Shuffle & Repeat modes** (`off`, `all`, `one`).
+- **Volume Control** with smooth adjustments.
+- **Persistent playback state** using `zustand/persist` and `AsyncStorage`.
+- **Server player!** check out [Local Sever Player Branch](https://github.com/itsOwn3r/rn-music-player/local-server-player-rntp).
+
+---
+
+### 🎵 Library & Playlists
+
+- Automatically loads your **local song library**.
+- **Adds new songs** with metadata like artist, album, and year automatically.
+- **Incremental play counts** — track your listening habits.
+- **Favorites system** — mark songs you love.
+- **Custom playlists** — create, edit, and remove playlists easily.
+
+---
+
+### 🖼️ Song Details & Metadata
+
+- Edit **song info** (title, artist, album, year) right from the app.
+- Each song supports custom **cover art** and **lyrics**.
+- Shows tracks of **album**.
+
+---
+
+### ✍️ Lyrics & Synced Lyrics
+
+- Fetches lyrics from [LRC-LIB](https://lrclib.net/) API.
+- Add or edit lyrics and **synced lyrics**.
+- Syncing plain lyrics to **synced lyrics**.
+- Can show or hide Lyrics.
+- Changes automatically persist across sessions.
+
+---
+
+### 💾 Download Manager
+
+- **Download songs** with a system-native file picker via `Storage Access Framework`.
+- Automatically saves to your **Downloads playlist**.
+- Safely updates song paths and metadata after download.
+
+---
+
+### 🔁 Queue & Navigation
+
+- Dynamic queue management — add, remove, and clear queued songs.
+- Supports **context-based queues** (library, search results, or playlists).
+- Smart logic for **next/previous** navigation depending on shuffle/repeat mode.
+
+---
+
+### 🧩 Additional Highlights
+
+- Real-time position tracking with `TrackPlayer`.
+- **Smart resume** when reopening the app — playback continues where you left off.
+- Smooth transitions between songs.
+- In-app toasts (via `sonner-native`) for instant feedback on user actions.
+
+---
+
+## 🏗️ Production Build (Release APK)
+
+1. Run this command to generate the `android` folder:
 
    ```bash
-   npm install
+    npx expo prebuild --clean
    ```
 
-2. Start the app
+2. Generate a new signing key:
+   ```bash
+    keytool -genkeypair -v -storetype PKCS12 -keystore my-release-key.keystore -alias my-key-alias -keyalg RSA -keysize 2048 -validity 10000
+   ```
+3. copy the generated file to: `android/app/my-release-key.keystore`
+4. edit `signingConfigs` and then `buildTypes` in `android\app\build.gradle`:
 
    ```bash
-   npx expo start
+    signingConfigs {
+            release {
+                storeFile file('my-release-key.keystore')
+                storePassword 'yourpassword'
+                keyAlias 'my-key-alias'
+                keyPassword 'yourpassword'
+            }
+    }
    ```
 
-In the output, you'll find options to open the app in a
+   ```bash
+    buildTypes {
+            release {
+                signingConfig signingConfigs.release
+                minifyEnabled false
+                shrinkResources false
+                proguardFiles getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro"
+            }
+    }
+   ```
 
-- [development build](https://docs.expo.dev/develop/development-builds/introduction/)
-- [Android emulator](https://docs.expo.dev/workflow/android-studio-emulator/)
-- [iOS simulator](https://docs.expo.dev/workflow/ios-simulator/)
-- [Expo Go](https://expo.dev/go), a limited sandbox for trying out app development with Expo
-
-You can start developing by editing the files inside the **app** directory. This project uses [file-based routing](https://docs.expo.dev/router/introduction).
-
-## Get a fresh project
-
-When you're ready, run:
+5. ```bash
+    npx expo export --platform android
+   ```
+6. ```bash
+    cd android
+   ```
+7.
 
 ```bash
-npm run reset-project
+    ./gradlew clean
 ```
 
-This command will move the starter code to the **app-example** directory and create a blank **app** directory where you can start developing.
+8.
 
-## Learn more
+```bash
+    ./gradlew assembleRelease
+```
 
-To learn more about developing your project with Expo, look at the following resources:
+- after successfull build, the output APK will be at `android/app/build/outputs/apk/release/app-release.apk`
 
-- [Expo documentation](https://docs.expo.dev/): Learn fundamentals, or go into advanced topics with our [guides](https://docs.expo.dev/guides).
-- [Learn Expo tutorial](https://docs.expo.dev/tutorial/introduction/): Follow a step-by-step tutorial where you'll create a project that runs on Android, iOS, and the web.
+---
 
-## Join the community
+### 🔧 Development Build (Debug APK)
 
-Join our community of developers creating universal apps.
+A **development build** lets you test features quickly with live logs and the React Native debug menu enabled.
 
-- [Expo on GitHub](https://github.com/expo/expo): View our open source platform and contribute.
-- [Discord community](https://chat.expo.dev): Chat with Expo users and ask questions.
+#### Steps:
+
+Use this command and the APK file will be generated at `android/app/build/outputs/apk/debug/app-debug.apk`
+
+```bash
+npm install
+npx expo prebuild
+cd android
+./gradlew clean
+./gradlew assembleDebug
+```
+
+---
+
+## 🛠️ Tech Stack
+
+| Category            | Libraries                                                                                                |
+| ------------------- | -------------------------------------------------------------------------------------------------------- |
+| Framework           | [Expo](https://expo.dev)                                                                                 |
+| State Management    | [Zustand](https://github.com/pmndrs/zustand)                                                             |
+| Audio Playback      | [react-native-track-player](https://github.com/doublesymmetry/react-native-track-player)                 |
+| Storage             | [AsyncStorage](https://github.com/react-native-async-storage/async-storage)                              |
+| File Access         | [Storage Access Framework (SAF)](https://developer.android.com/guide/topics/providers/document-provider) |
+| Toast Notifications | [sonner-native](https://github.com/emilkowalski/sonner)                                                  |
