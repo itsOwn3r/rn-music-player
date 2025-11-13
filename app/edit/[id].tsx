@@ -3,7 +3,6 @@ import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { FontAwesome6, MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import * as Clipboard from "expo-clipboard";
 import { useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
@@ -17,35 +16,38 @@ import {
 } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 
-const EditLyricsScreen = () => {
+const EditSongScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
   const router = useRouter();
   const getSongInfo = usePlayerStore((s) => s.getSongInfo);
-  const updateLyrics = usePlayerStore((s) => s.setLyrics);
+  const editSong = usePlayerStore((s) => s.editSong);
 
   const [song, setSong] = useState<Song | null>(null);
-  const [lyrics, setLyrics] = useState("");
-  const [loading, setLoading] = useState(true);
+  const [title, setTitle] = useState("");
+  const [artist, setArtist] = useState("");
+  const [album, setAlbum] = useState("");
+  const [year, setYear] = useState("");
+  const [loading, setLoading] = useState(false);
 
   useEffect(() => {
     (async () => {
       if (!id) return;
       const info = await getSongInfo(id);
       setSong(info);
-      if (info?.lyrics) setLyrics(info.lyrics);
+      if (info) {
+        setTitle(info.title || "");
+        setArtist(info.artist || "");
+        setAlbum(info.album?.trim() || "");
+        setYear(info.year || "");
+      }
       setLoading(false);
     })();
   }, [getSongInfo, id]);
 
-  const handlePaste = async () => {
-    const text = await Clipboard.getStringAsync();
-    setLyrics(text);
-  };
-
   const handleSave = async () => {
     if (!song) return;
-    await updateLyrics(song.id!, lyrics);
-    router.back();
+    await editSong(song.id!, title, artist, album, year);
+    router.dismissTo("/Playing");
   };
 
   if (loading)
@@ -61,18 +63,18 @@ const EditLyricsScreen = () => {
         <Text className="text-gray-400 text-lg">Song not found</Text>
       </View>
     );
-
+  // console.log(song);
   return (
     <SafeAreaView className="flex-1 bg-black b z-50" pointerEvents="box-none">
       {/* Header */}
       <View
-        className="flex-row items-center justify-between px-5 pt-3"
+        className="flex-row items-center justify-between px-5 pt-3 z-50"
         style={{ elevation: 10 }}
       >
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={26} color="#fff" />
         </TouchableOpacity>
-        <Text className="text-white text-lg font-bold">Edit Lyrics</Text>
+        <Text className="text-white text-lg font-bold">Edit Song Info</Text>
         <TouchableOpacity onPress={handleSave}>
           <FontAwesome6 name="check" size={26} color="#22c55e" />
         </TouchableOpacity>
@@ -82,13 +84,16 @@ const EditLyricsScreen = () => {
         <Image
           source={{ uri: song.coverArt }}
           blurRadius={30}
-          className="absolute w-full h-full"
+          className="absolute w-full h-[120%]"
         />
       )}
-      <BlurView intensity={80} tint="dark" className="absolute w-full h-full" />
+      <BlurView
+        intensity={80}
+        tint="dark"
+        className="absolute w-full h-[120%]"
+      />
 
       <ScrollView
-        className="flex-1 mt-6"
         keyboardShouldPersistTaps="handled"
         showsVerticalScrollIndicator={false}
         contentContainerStyle={{ paddingBottom: 120 }}
@@ -113,36 +118,76 @@ const EditLyricsScreen = () => {
           </Text>
         </View>
 
-        {/* Lyrics Input */}
-        <View className="mx-5 mt-8">
+        <View className="mx-5 mt-4">
+          <Text className="text-xl">Title:</Text>
           <BlurView
             intensity={60}
             tint="dark"
             className="rounded-2xl overflow-hidden"
           >
             <TextInput
-              multiline
-              value={lyrics}
-              onChangeText={setLyrics}
-              placeholder="Type or paste lyrics here..."
+              value={title}
+              onChangeText={setTitle}
+              placeholder={"Title"}
               placeholderTextColor="#888"
               textAlignVertical="top"
-              className="text-white text-base p-4 h-[300px]"
+              className="text-white text-base p-4 h-[50px]"
+            />
+          </BlurView>
+          <Text className="text-xl mt-4">Artist:</Text>
+          <BlurView
+            intensity={60}
+            tint="dark"
+            className="rounded-2xl overflow-hidden"
+          >
+            <TextInput
+              value={artist}
+              onChangeText={setArtist}
+              placeholder={"Artist"}
+              placeholderTextColor="#888"
+              textAlignVertical="top"
+              className="text-white text-base p-4 h-[50px]"
+            />
+          </BlurView>
+          <Text className="text-xl mt-4">Album:</Text>
+          <BlurView
+            intensity={60}
+            tint="dark"
+            className="rounded-2xl overflow-hidden"
+          >
+            <TextInput
+              value={album}
+              onChangeText={setAlbum}
+              placeholder={"Enter Album name"}
+              placeholderTextColor="#888"
+              textAlignVertical="top"
+              className="text-white text-base p-4 h-[50px]"
+            />
+          </BlurView>
+          <Text className="text-xl mt-4">Year:</Text>
+          <BlurView
+            intensity={60}
+            tint="dark"
+            className="rounded-2xl overflow-hidden"
+          >
+            <TextInput
+              value={year}
+              onChangeText={setYear}
+              placeholder={"Release Year"}
+              placeholderTextColor="#888"
+              textAlignVertical="top"
+              className="text-white text-base p-4 h-[50px]"
             />
           </BlurView>
         </View>
 
         {/* Buttons */}
         <View className="px-8 space-y-4 gap-y-4 mt-12">
-          <AnimatedButton
-            color="green"
-            label="💾 Save Lyrics"
-            onPress={handleSave}
-          />
+          <AnimatedButton color="green" label="💾 Save" onPress={handleSave} />
           <AnimatedButton
             color="cyan"
-            label="📋 Paste from Clipboard"
-            onPress={handlePaste}
+            label="Cancel"
+            onPress={() => router.back()}
           />
         </View>
       </ScrollView>
@@ -150,4 +195,4 @@ const EditLyricsScreen = () => {
   );
 };
 
-export default EditLyricsScreen;
+export default EditSongScreen;

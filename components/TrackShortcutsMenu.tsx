@@ -12,6 +12,7 @@ import {
   TouchableOpacity,
   View,
 } from "react-native";
+import { toast } from "sonner-native";
 
 type TrackShortcutsMenuProps = PropsWithChildren<{
   track: Song;
@@ -59,6 +60,30 @@ const TrackShortcutsMenu = ({
     removeTrackFromPlaylist(playlistId, track.id || "");
   };
 
+  const goToAlbum = () => {
+    if (!track.album) {
+      toast.error("Sorry! There is no Album");
+      return;
+    }
+    setVisible(false);
+    router.navigate({
+      pathname: "/album/[name]",
+      params: { name: track.album.replaceAll(" ", "+") },
+    });
+  };
+
+  const goToArtist = () => {
+    if (!track.artist) {
+      toast.error("Sorry! There is no Artist name");
+      return;
+    }
+    setVisible(false);
+    router.navigate({
+      pathname: "/(tabs)/artists/[name]",
+      params: { name: track.artist },
+    });
+  };
+
   const openMenu = () => {
     if (Platform.OS === "ios") {
       const favoriteLabel = isFavorite
@@ -87,16 +112,35 @@ const TrackShortcutsMenu = ({
         onRequestClose={() => setVisible(false)}
       >
         <Pressable
-          className="flex-1 bg-black/60 justify-end"
+          className="bg-black/60 justify-end size-full"
           onPress={() => setVisible(false)}
         >
-          <View className="bg-[#1c1c1e] rounded-t-2xl shadow-lg">
+          <View
+            className="bg-[#1c1c1e] rounded-t-2xl shadow-lg justify-end"
+            style={{ justifyContent: "flex-end", paddingBottom: 20 }}
+          >
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"
               onPress={() => fetchLyrics(track, setLyrics)}
             >
               <Text className="text-base text-gray-100">⬇ Fetch Lyrics</Text>
             </TouchableOpacity>
+
+            <TouchableOpacity
+              className="px-5 py-4 border-b border-white/10"
+              onPress={goToArtist}
+            >
+              <Text className="text-base text-gray-100">🎙 Show Artist</Text>
+            </TouchableOpacity>
+
+            {track.album && (
+              <TouchableOpacity
+                className="px-5 py-4 border-b border-white/10"
+                onPress={goToAlbum}
+              >
+                <Text className="text-base text-gray-100">🎶 Show Album</Text>
+              </TouchableOpacity>
+            )}
 
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"

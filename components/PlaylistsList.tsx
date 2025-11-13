@@ -25,7 +25,7 @@ const PlaylistsList = ({
   const router = useRouter();
   return (
     <FlatList
-      className="flex-1 size-full mt-16 overflow-y-scroll"
+      className="flex-1 size-full mt-14 overflow-y-scroll"
       style={{
         // paddingBottom: insets.bottom + 150,
         marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
@@ -40,7 +40,7 @@ const PlaylistsList = ({
       ListFooterComponent={ItemDivider}
       scrollEnabled={scrollEnabled === true}
       ListHeaderComponent={
-        <View className="flex mt-2 mb-4 bg-transparent border-white rounded-lg border-hairline">
+        <View className="flex mt-2 px-5 mb-4 bg-transparent border-white rounded-lg border-hairline">
           <Button
             title="Create new Playlist"
             color="black"

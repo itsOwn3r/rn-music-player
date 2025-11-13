@@ -18,6 +18,8 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
+const systemPlaylists = ["downloads", "recent", "most-played", "favorites"];
+
 export const PlaylistTracksList = ({
   playlist,
   playlistName,
@@ -77,7 +79,7 @@ export const PlaylistTracksList = ({
       className="flex-1"
       style={{
         // paddingBottom: insets.bottom + 150,
-        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 90,
+        marginBottom: insets.bottom === 0 ? 150 : insets.bottom + 50,
         paddingTop: insets.top,
         paddingBottom: insets.bottom + 10,
         elevation: 4,
@@ -139,18 +141,20 @@ export const PlaylistTracksList = ({
             {search.length === 0 && (
               <QueueControls tracks={populatePlaylistSong} />
             )}
-            <View className="w-full justify-center items-center">
-              <TouchableOpacity
-                onPress={() => handleDeletePlaylist(playlist.id)}
-                activeOpacity={0.8}
-                className="p-3 bg-[rgba(143,24,24,0.64)] rounded-lg flex-row justify-center items-center gap-x-2"
-              >
-                <Ionicons name="warning-sharp" size={22} color="#fff" />
-                <Text className="text-white font-semibold text-lg text-center">
-                  Delete playlist
-                </Text>
-              </TouchableOpacity>
-            </View>
+            {!systemPlaylists.includes(playlist.id) && (
+              <View className="w-full justify-center items-center">
+                <TouchableOpacity
+                  onPress={() => handleDeletePlaylist(playlist.id)}
+                  activeOpacity={0.8}
+                  className="p-3 bg-[rgba(143,24,24,0.64)] rounded-lg flex-row justify-center items-center gap-x-2"
+                >
+                  <Ionicons name="warning-sharp" size={22} color="#fff" />
+                  <Text className="text-white font-semibold text-lg text-center">
+                    Delete playlist
+                  </Text>
+                </TouchableOpacity>
+              </View>
+            )}
           </View>
         }
         tracks={filteredPlaylistSongs}

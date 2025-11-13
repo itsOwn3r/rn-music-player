@@ -13,6 +13,12 @@ const SongInfoLayout = () => {
           }}
         />
         <Stack.Screen
+          name="editsynced/[id]"
+          options={{
+            headerShown: false,
+          }}
+        />
+        <Stack.Screen
           name="sync/[id]"
           options={{
             headerShown: false,

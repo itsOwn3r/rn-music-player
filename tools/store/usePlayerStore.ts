@@ -5,6 +5,8 @@ import {
   addSong,
   addSongToPlaylist,
   createPlaylist,
+  editSong,
+  getAlbum,
   getAllPlaylists,
   getAllSongs,
   getFavoriteSongs,
@@ -102,11 +104,19 @@ type PlayerStore = {
   setFiles: (files: Song[]) => void;
   setAllFiles: (files: Song[]) => void;
   setLyrics: (id: string, lyrics: string, syncedLyrics?: string) => void;
+  editSong: (
+    id: string,
+    title: string,
+    artist: string,
+    album?: string,
+    year?: string
+  ) => Promise<null | undefined>;
 
   updateFileLocalUri: (id: string | null | undefined, localUri: string) => void;
   downloadFile: (id: string, remoteUri: string) => void;
   incrementPlayCount: (id: string | null | undefined) => void;
   getSongInfo: (id: string) => Promise<Song | null>;
+  getAlbum: (id: string) => Promise<Song[] | null>;
   updateSongSyncedLyrics: (id: string, syncedLyrics: string) => void;
 };
 
@@ -413,7 +423,13 @@ export const usePlayerStore = create<PlayerStore>()(
         const { currentSong, position } = get();
         const state = await TrackPlayer.getPlaybackState();
 
-        if (state.state === State.Stopped && currentSong) {
+        const getProgress = await TrackPlayer.getProgress();
+        const playerPosition = getProgress.position;
+
+        if (
+          (state.state === State.Stopped || state.state === State.None) &&
+          currentSong
+        ) {
           await TrackPlayer.reset();
           const uri = currentSong.localUri ?? currentSong.uri;
 
@@ -428,12 +444,15 @@ export const usePlayerStore = create<PlayerStore>()(
             },
             { id: "placeholder", url: uri, title: currentSong.title },
           ]);
-          set({ currentSong: currentSong, isPlaying: true, position });
+          set({
+            currentSong: currentSong,
+            isPlaying: true,
+            position: position ?? playerPosition,
+          });
 
-          await TrackPlayer.seekTo(position);
+          await TrackPlayer.seekTo(position ?? playerPosition);
           await TrackPlayer.play();
         } else if (state.state === State.Playing) {
-          await playPauseHandler("pause");
           await TrackPlayer.pause();
           set({ isPlaying: false });
         } else {
@@ -528,15 +547,11 @@ export const usePlayerStore = create<PlayerStore>()(
           repeat,
           setIsPlaying,
           currentSong,
-          position,
           shuffle,
           incrementPlayCount,
         } = get();
 
         if (!queue.length) return;
-
-        // Guard against auto-advance firing too early
-        if (method === "update" && position < 10) return;
 
         // Debounce multiple "update" triggers
         const now = Date.now();
@@ -547,7 +562,7 @@ export const usePlayerStore = create<PlayerStore>()(
         _lastQueueAdvance = now;
 
         // Handle repeat-one
-        if (repeat === "one") {
+        if (repeat === "one" && method === "update") {
           await TrackPlayer.seekTo(0);
           await TrackPlayer.play();
           setIsPlaying(true);
@@ -650,8 +665,31 @@ export const usePlayerStore = create<PlayerStore>()(
           return null;
         }
 
-        await addLyrics(id, lyrics, syncedLyrics ? syncedLyrics : null);
+        const { currentSong, getSongInfo } = get();
+
+        const song = await getSongInfo(id);
+
+        const synced = song?.syncedLyrics
+          ? song?.syncedLyrics
+          : syncedLyrics
+            ? syncedLyrics
+            : null;
+
+        await addLyrics(id, lyrics, synced);
         toast.success(`Lyrics added!`);
+
+        if (currentSong?.id === id) {
+          const mutatableCurrentSong = currentSong;
+          mutatableCurrentSong.lyrics = lyrics;
+          mutatableCurrentSong.syncedLyrics = syncedLyrics
+            ? syncedLyrics
+            : null;
+
+          set(() => ({
+            currentSong: mutatableCurrentSong,
+          }));
+        }
+
         set((state) => ({
           files: state.files.map((f) =>
             f.id === id
@@ -659,6 +697,49 @@ export const usePlayerStore = create<PlayerStore>()(
                   ...f,
                   lyrics,
                   ...(syncedLyrics ? { syncedLyrics } : {}), // 👈 only add if defined
+                }
+              : f
+          ),
+        }));
+      },
+      editSong: async (
+        id: string,
+        title: string,
+        artist: string,
+        album?: string,
+        year?: string
+      ) => {
+        if (!id || !title || !artist) {
+          toast.error("You must ented the required fields: Title, Artist!");
+          return null;
+        }
+
+        const { currentSong } = get();
+
+        await editSong(id, title, artist, album, year);
+        toast.success(`Song Edited!`);
+
+        if (currentSong?.id === id) {
+          const mutatableCurrentSong = currentSong;
+          mutatableCurrentSong.title = title;
+          mutatableCurrentSong.artist = artist;
+          mutatableCurrentSong.album = album || "";
+          mutatableCurrentSong.year = year;
+
+          set(() => ({
+            currentSong: mutatableCurrentSong,
+          }));
+        }
+
+        set((state) => ({
+          files: state.files.map((f) =>
+            f.id === id
+              ? {
+                  ...f,
+                  title,
+                  artist,
+                  album: album || " ",
+                  year,
                 }
               : f
           ),
@@ -682,6 +763,10 @@ export const usePlayerStore = create<PlayerStore>()(
       },
       getSongInfo: async (id: string) => {
         const songInfo = await getSongInfoFromDB(id);
+        return songInfo;
+      },
+      getAlbum: async (name: string) => {
+        const songInfo = await getAlbum(name);
         return songInfo;
       },
       updateSongSyncedLyrics: async (id: string, syncedLyrics: string) => {
@@ -790,6 +875,25 @@ export const usePlaylistStore = create<{
   },
 
   addTrackToPlaylist: async (playlistId, songId) => {
+    const { favorites } = get();
+
+    if (playlistId === "favorites") {
+      if (!favorites.find((fav) => fav.id === songId)) {
+        const mutatableFavorites = favorites;
+
+        const getSongInfo = usePlayerStore.getState().getSongInfo;
+        const song = await getSongInfo(songId);
+        if (!song) {
+          toast.error("Something went wrong! The song coundn't be found!");
+          return;
+        }
+        mutatableFavorites.push(song);
+        set(() => ({
+          favorites: mutatableFavorites,
+        }));
+      }
+    }
+
     await addSongToPlaylist(playlistId, songId);
     await get().loadPlaylists("all");
   },
@@ -862,5 +966,5 @@ TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
 TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
   const queue = usePlayerStore.getState().queue;
   if (queue.length > 0)
-    await usePlayerStore.getState().playAnotherSongInQueue("next");
+    await usePlayerStore.getState().playAnotherSongInQueue("next", "update");
 });

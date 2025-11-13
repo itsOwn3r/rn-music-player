@@ -149,6 +149,15 @@ export async function getAllSongs(): Promise<Song[]> {
   return rows as Song[];
 }
 
+export async function getAlbum(album: string): Promise<Song[]> {
+  const db = await getDB();
+  const rows = await db.getAllAsync(
+    `SELECT * FROM songs WHERE album = ? ORDER BY date DESC`,
+    [album]
+  );
+  return rows as Song[];
+}
+
 export async function getSongInfoFromDB(id: string): Promise<Song | null> {
   if (!id) return null;
   const db = await getDB();
@@ -164,6 +173,25 @@ export async function removeSong(id: string) {
 export async function clearSongs() {
   const db = await getDB();
   await db.execAsync(`DELETE FROM songs`);
+}
+
+export async function editSong(
+  songId: string,
+  title: string,
+  artist: string,
+  album?: string,
+  year?: string
+) {
+  try {
+    const db = await getDB();
+    await db.runAsync(
+      "UPDATE songs SET title = ?, artist = ?, album = ?, year = ? WHERE id = ?",
+      [title, artist, album || null, year || null, songId]
+    );
+  } catch (error) {
+    console.log(error);
+    toast.error(`Error: ${error}`);
+  }
 }
 
 export async function addLyrics(

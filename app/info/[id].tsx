@@ -1,93 +1,22 @@
+import { AnimatedButton } from "@/components/AnimatedButton";
 import formatDuration from "@/tools/formatDuration";
 import { handleFetchingLyrics } from "@/tools/handleFetchingLyrics";
 import { usePlayerStore } from "@/tools/store/usePlayerStore";
 import { Song } from "@/types/types";
 import { Ionicons, MaterialIcons } from "@expo/vector-icons";
 import { BlurView } from "expo-blur";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
+import { Link, Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import React, { useEffect, useState } from "react";
 import {
   ActivityIndicator,
   Image,
   ScrollView,
   Text,
-  TouchableWithoutFeedback,
+  TouchableOpacity,
   View,
 } from "react-native";
-import Animated, {
-  useAnimatedStyle,
-  useSharedValue,
-  withRepeat,
-  withSequence,
-  withTiming,
-} from "react-native-reanimated";
-
-const AnimatedButton = ({
-  label,
-  disabled,
-  color,
-  onPress,
-}: {
-  label: string;
-  disabled?: boolean;
-  color: "green" | "cyan";
-  onPress?: () => void;
-}) => {
-  const scale = useSharedValue(1);
-  const glow = useSharedValue(0.4);
-
-  // subtle breathing glow effect
-  React.useEffect(() => {
-    glow.value = withRepeat(
-      withSequence(
-        withTiming(1, { duration: 1500 }),
-        withTiming(0.4, { duration: 1500 })
-      ),
-      -1,
-      true
-    );
-  }, [glow]);
-
-  const animatedStyle = useAnimatedStyle(() => ({
-    transform: [{ scale: scale.value }],
-    shadowOpacity: glow.value,
-    shadowRadius: 30 * glow.value,
-  }));
-
-  const bgColor =
-    color === "green"
-      ? disabled
-        ? "bg-gray-700"
-        : "bg-green-600"
-      : disabled
-        ? "bg-gray-700"
-        : "bg-cyan-600";
-
-  const shadowColor =
-    color === "green" ? "shadow-green-400/60" : "shadow-cyan-400/60";
-
-  return (
-    <TouchableWithoutFeedback
-      onPressIn={() => (scale.value = withTiming(0.96, { duration: 100 }))}
-      onPressOut={() => (scale.value = withTiming(1, { duration: 150 }))}
-      disabled={disabled}
-      onPress={onPress ? onPress : undefined}
-    >
-      <Animated.View
-        className={`py-4 rounded-2xl items-center shadow-lg ${bgColor} ${shadowColor}`}
-        style={animatedStyle}
-      >
-        <Text
-          className={`text-white text-base font-semibold tracking-wide ${
-            disabled ? "opacity-70" : ""
-          }`}
-        >
-          {label}
-        </Text>
-      </Animated.View>
-    </TouchableWithoutFeedback>
-  );
-};
+import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const SongInfoScreen = () => {
   const { id } = useLocalSearchParams<{ id: string }>();
@@ -130,6 +59,7 @@ const SongInfoScreen = () => {
 
   if (!id) {
     console.warn(`Song with ${id} was not found!`);
+    toast.warning(`Song with ${id} was not found!`);
     return <Redirect href={"/(tabs)/playlists"} />;
   }
 
@@ -150,7 +80,21 @@ const SongInfoScreen = () => {
   }
 
   return (
-    <View className="flex-1 bg-black">
+    <SafeAreaView className="flex-1 bg-black">
+      <View className="flex-row items-center justify-between px-5 pt-3 z-10">
+        <TouchableOpacity className="z-50" onPress={() => router.back()}>
+          <MaterialIcons
+            className="z-50"
+            name="arrow-back"
+            size={26}
+            color="#fff"
+          />
+        </TouchableOpacity>
+        <Text className="text-white text-lg font-bold">Song Info</Text>
+        <View className="opacity-0">
+          <Text>Go</Text>
+        </View>
+      </View>
       {/* Blurred background using coverArt */}
       {song.coverArt && (
         <Image
@@ -159,7 +103,12 @@ const SongInfoScreen = () => {
           className="absolute w-full h-full"
         />
       )}
-      <BlurView intensity={80} tint="dark" className="absolute w-full h-full" />
+      <BlurView
+        intensity={80}
+        tint="dark"
+        className="absolute w-full h-full"
+        pointerEvents="none"
+      />
 
       <ScrollView
         showsVerticalScrollIndicator={false}
@@ -196,7 +145,15 @@ const SongInfoScreen = () => {
 
           <View className="flex-row justify-center mt-3 space-x-3">
             {song.album && (
-              <Text className="text-gray-400 text-sm">🎵 {song.album}</Text>
+              <Link
+                href={{
+                  pathname: "/album/[name]",
+                  params: { name: song.album.replaceAll(" ", "+") },
+                }}
+                className="text-gray-400 text-sm"
+              >
+                🎵 {song.album}
+              </Link>
             )}
             {song.year && (
               <Text className="text-gray-400 text-sm">📅 {song.year}</Text>
@@ -210,6 +167,13 @@ const SongInfoScreen = () => {
                 {formatDuration(song.duration)}
               </Text>
             </View>
+            {song.size && song.size > 0 ? (
+              <View className="flex-row items-center space-x-2">
+                <Text className="text-gray-400 text-sm">💾 {song.size} MB</Text>
+              </View>
+            ) : (
+              <Text className="hidden">MB</Text>
+            )}
             <View className="flex-row items-center space-x-2">
               <Text className="text-gray-400 text-sm">
                 ▶️ {song.playCount || 0} plays
@@ -225,7 +189,9 @@ const SongInfoScreen = () => {
             label={!!song.lyrics ? "Edit Lyrics?" : "Add Lyrics"}
             onPress={() =>
               router.push({
-                pathname: "/lyrics/edit/[id]",
+                pathname: !!song.syncedLyrics
+                  ? "/lyrics/editsynced/[id]"
+                  : "/lyrics/edit/[id]",
                 params: { id: song.id || "" },
               })
             }
@@ -237,7 +203,7 @@ const SongInfoScreen = () => {
             label={
               song.lyrics
                 ? song.syncedLyrics
-                  ? "Edit Synced Lyrics"
+                  ? "Edit Synced timestamps"
                   : "Sync Lyrics"
                 : "Fetch/Add Lyrics first"
             }
@@ -258,9 +224,22 @@ const SongInfoScreen = () => {
             }
             onPress={() => fetchingLyrics()}
           />
+
+          <View className="border-cyan-600 border-1" />
+
+          <AnimatedButton
+            color="green"
+            label="Edit Song"
+            onPress={() =>
+              router.push({
+                pathname: "/edit/[id]",
+                params: { id: song.id || "" },
+              })
+            }
+          />
         </View>
       </ScrollView>
-    </View>
+    </SafeAreaView>
   );
 };
 

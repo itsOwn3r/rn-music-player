@@ -4,7 +4,6 @@ import { Entypo } from "@expo/vector-icons";
 import React, { memo } from "react";
 import { Image, Text, TouchableHighlight, View } from "react-native";
 import TrackShortcutsMenu from "./TrackShortcutsMenu";
-import StopPropagation from "./utils/StopPropagation";
 
 export type TrackListItemProps = {
   handlePlaySong: (track: Song) => void | Promise<void>;
@@ -44,27 +43,36 @@ const TracksListItem = memo(
           </View>
 
           <View className="flex flex-1 justify-between items-center flex-row">
-            <View className="w-full">
+            <View className="w-[95%]">
               <Text
                 numberOfLines={1}
                 className={`max-w-[90%] font-semibold text-base ${isActive ? "text-[#fc3c44]" : "text-white"}`}
               >
                 {track.title ? track.title : "Unknown Title"}
               </Text>
-              <Text numberOfLines={1} className="text-[#9ca3af] text-sm mt-1">
-                {track.artist ? track.artist : "Unknown Artist"}
-              </Text>
+              <View className="flex justify-between flex-row items-center">
+                <Text
+                  numberOfLines={1}
+                  className="text-[#9ca3af] text-sm mt-1 "
+                >
+                  {track.artist ? track.artist : "Unknown Artist"}
+                </Text>
+              </View>
             </View>
-
-            <StopPropagation>
-              <TrackShortcutsMenu
-                track={track}
-                isInPlaylist={isInPlaylist}
-                playlistId={playlistId}
-              >
-                <Entypo name="dots-three-horizontal" size={18} color="#fff" />
-              </TrackShortcutsMenu>
-            </StopPropagation>
+            <View className="flex items-center flex-row gap-x-2 -ml-1">
+              <Text className="text-xs rounded-full px-1 justify-center items-center text-center bg-slate-700 ">
+                {index + 1}
+              </Text>
+              <View className="flex flex-1 justify-between items-center flex-row">
+                <TrackShortcutsMenu
+                  track={track}
+                  isInPlaylist={isInPlaylist}
+                  playlistId={playlistId}
+                >
+                  <Entypo name="dots-three-horizontal" size={18} color="#fff" />
+                </TrackShortcutsMenu>
+              </View>
+            </View>
           </View>
         </View>
       </TouchableHighlight>

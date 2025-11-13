@@ -8,7 +8,6 @@ import React, { useMemo, useState } from "react";
 import {
   FlatList,
   Image,
-  ScrollView,
   Text,
   TextInput,
   TouchableHighlight,
@@ -22,7 +21,7 @@ export function processMusicData(musicArray: Song[]) {
     const artistsMap = new Map();
 
     musicArray.forEach((song) => {
-      const artistName = song.artist;
+      const artistName = song.artist?.toLowerCase();
       const artistImage = song.coverArt; // Use the song's cover art as the artist image
       const songData = {
         title: song.title,
@@ -40,7 +39,7 @@ export function processMusicData(musicArray: Song[]) {
         existingArtist.songs.push(songData);
       } else {
         // Create a new artist entry
-        artistsMap.set(artistName, {
+        artistsMap.set(artistName?.toLowerCase(), {
           name: artistName,
           image: artistImage,
           songs: [songData],
@@ -105,16 +104,13 @@ const ArtistsScreen = () => {
         </View>
       </View>
 
-      <ScrollView
-        className="px-6 pt-16"
-        contentInsetAdjustmentBehavior="automatic"
-      >
+      <View className="px-6 pt-16">
         <FlatList
           data={filteredArtists}
-          contentContainerStyle={{ paddingTop: 10, paddingBottom: 120 }}
-          scrollEnabled={false}
+          scrollEnabled={true}
           ItemSeparatorComponent={ItemSeparatorComponent}
           ListFooterComponent={ItemSeparatorComponent}
+          contentContainerStyle={{ paddingTop: 15, paddingBottom: 140 }}
           ListEmptyComponent={
             <View>
               <Text>No Artist Found!</Text>
@@ -158,7 +154,7 @@ const ArtistsScreen = () => {
             );
           }}
         />
-      </ScrollView>
+      </View>
     </SafeAreaView>
   );
 };

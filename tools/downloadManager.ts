@@ -3,7 +3,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as FileSystem from "expo-file-system";
 
-const PERMISSIONS_KEY = "music_download_folder_uri";
+const PERMISSIONS_KEY = "musicDirectoryUri";
 
 export async function getOrRequestDownloadFolderUri(): Promise<string | null> {
   // 1️⃣ Try to restore stored folder

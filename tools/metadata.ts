@@ -27,6 +27,10 @@ export async function readTagsForContentUri(
     const metadata = await parseBlob(blob);
     const { common, format } = metadata;
 
+    const sizeInMB = fileInfo.size
+      ? (fileInfo.size / (1024 * 1024)).toFixed(2)
+      : 0;
+
     let coverPath: string | null = null;
     if (common.picture && common.picture.length > 0) {
       coverPath = await saveCoverArtIfNeeded(
@@ -48,6 +52,7 @@ export async function readTagsForContentUri(
       filename,
       uri,
       index: 0,
+      size: Number(sizeInMB),
       date: timestamp, // ✅ JS timestamp in ms
     };
 

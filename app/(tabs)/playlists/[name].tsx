@@ -7,6 +7,7 @@ import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
 import { useEffect, useState } from "react";
 import { Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
+import { toast } from "sonner-native";
 
 const PlaylistScreen = () => {
   const { name: playlistId } = useLocalSearchParams<{ name: string }>();
@@ -53,12 +54,16 @@ const PlaylistScreen = () => {
 
   if (!playlist) {
     console.warn(`Playlist ${playlistId} was not found!`);
+    toast.warning(`Playlist ${playlistId} was not found!`);
     return <Redirect href={"/(tabs)/playlists"} />;
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black px-1">
-      <View className="flex-row items-center justify-between px-5 py-3 z-50">
+    <SafeAreaView className="flex-1 bg-black px-1" pointerEvents="box-none">
+      <View
+        className="flex-row items-center justify-between px-5 py-3 z-50"
+        style={{ elevation: 10 }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={26} color="#ffffff" />
         </TouchableOpacity>

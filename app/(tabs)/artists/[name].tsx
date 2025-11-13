@@ -30,8 +30,11 @@ const ArtistDetailScreen = () => {
   }
 
   return (
-    <SafeAreaView className="flex-1 bg-black px-6">
-      <View className="flex-row items-center justify-between px-5 py-3 z-50">
+    <SafeAreaView className="flex-1 bg-black px-6" pointerEvents="box-none">
+      <View
+        className="flex-row items-center justify-between px-5 py-3 z-50"
+        style={{ elevation: 10 }}
+      >
         <TouchableOpacity onPress={() => router.back()}>
           <MaterialIcons name="arrow-back" size={26} color="#ffffff" />
         </TouchableOpacity>

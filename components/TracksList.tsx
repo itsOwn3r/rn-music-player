@@ -134,6 +134,11 @@ const TracksList = React.forwardRef<FlatList<Song>, TracksListProps>(
             });
           }, 500);
         }}
+        getItemLayout={(_, index) => ({
+          length: 76,
+          offset: 76 * index,
+          index,
+        })}
         renderItem={({ item: track, index }) => (
           <TracksListItem
             index={index}
