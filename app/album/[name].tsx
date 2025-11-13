@@ -36,9 +36,7 @@ const AlbumScreen = () => {
     name: fetchedSongs[0].title || "Song Name",
     artistId: "tony-gaga",
     artistName: fetchedSongs[0].artist || "Artist Name",
-    coverArt:
-      fetchedSongs[0].coverArt ??
-      "file:///data/user/0/com.lori.app/files/albumArt/default.jpg",
+    coverArt: fetchedSongs[0].coverArt || undefined,
     songs: fetchedSongs,
     releaseDate: 1633046400000, // Dummy timestamp (Oct 1, 2021)
     duration: fetchedSongs.reduce((a, s) => a + (s.duration ?? 0), 0),
