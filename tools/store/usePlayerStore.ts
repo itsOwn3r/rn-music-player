@@ -22,7 +22,11 @@ import saveSongMetadata from "@/tools/saveCurrnetSong";
 import { Playlist, Song } from "@/types/types";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import { Buffer } from "buffer";
-import TrackPlayer, { Event, State } from "react-native-track-player";
+import TrackPlayer, {
+  Event,
+  RepeatMode,
+  State,
+} from "react-native-track-player";
 import uuid from "react-native-uuid";
 import { toast } from "sonner-native";
 import { create } from "zustand";
@@ -32,7 +36,6 @@ import { downloadSongWithSAF } from "../downloadManager";
 if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
 }
-let _lastQueueAdvance = 0;
 
 type PlayerStore = {
   files: Song[];
@@ -452,12 +455,20 @@ export const usePlayerStore = create<PlayerStore>()(
           let next: PlayerStore["repeat"];
           if (state.repeat === "off") {
             next = "all";
+            (async () => {
+              await TrackPlayer.setRepeatMode(RepeatMode.Queue);
+            })();
           } else if (state.repeat === "all") {
             next = "one";
+            (async () => {
+              await TrackPlayer.setRepeatMode(RepeatMode.Track);
+            })();
           } else {
             next = "off";
+            (async () => {
+              await TrackPlayer.setRepeatMode(RepeatMode.Off);
+            })();
           }
-          AsyncStorage.setItem("repeat", next);
           return { repeat: next };
         }),
       toggleShowLyrics: () =>
@@ -511,14 +522,6 @@ export const usePlayerStore = create<PlayerStore>()(
         } = get();
 
         if (!queue.length) return;
-
-        // Debounce multiple "update" triggers
-        const now = Date.now();
-        if (method === "update" && now - _lastQueueAdvance < 800) {
-          console.log("What");
-          return;
-        }
-        _lastQueueAdvance = now;
 
         // Handle repeat-one
         if (repeat === "one" && method === "update") {
@@ -901,8 +904,26 @@ TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
   usePlayerStore.getState().playAnotherSongInQueue("previous");
 });
 
-TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
-  const queue = usePlayerStore.getState().queue;
-  if (queue.length > 0)
-    await usePlayerStore.getState().playAnotherSongInQueue("next", "update");
-});
+TrackPlayer.addEventListener(
+  Event.PlaybackActiveTrackChanged,
+  async (Event) => {
+    if (Event.lastPosition && !Event.index) {
+      const currentSong = await usePlayerStore.getState().currentSong;
+      await usePlayerStore
+        .getState()
+        .setProgress(Event.lastPosition, currentSong?.duration || 1);
+    }
+
+    // Handeling end of track here.
+    // In order to have the Next Button on Notification bar:
+    //  We're always passing a fake second array item to 'TrackPlayer.add([])'
+
+    if (Event.index) {
+      if (Event.index > 0) {
+        await usePlayerStore
+          .getState()
+          .playAnotherSongInQueue("next", "update");
+      }
+    }
+  }
+);
