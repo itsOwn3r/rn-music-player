@@ -963,8 +963,19 @@ TrackPlayer.addEventListener(Event.RemotePrevious, async () => {
   usePlayerStore.getState().playAnotherSongInQueue("previous");
 });
 
-TrackPlayer.addEventListener(Event.PlaybackQueueEnded, async () => {
-  const queue = usePlayerStore.getState().queue;
-  if (queue.length > 0)
-    await usePlayerStore.getState().playAnotherSongInQueue("next", "update");
-});
+TrackPlayer.addEventListener(
+  Event.PlaybackActiveTrackChanged,
+  async (Event) => {
+    // Handeling end of track here.
+    // In order to have the Next Button on Notification bar:
+    //  We're always passing a fake second array item to 'TrackPlayer.add([])'
+
+    if (Event.index) {
+      if (Event.index > 0) {
+        await usePlayerStore
+          .getState()
+          .playAnotherSongInQueue("next", "update");
+      }
+    }
+  }
+);
