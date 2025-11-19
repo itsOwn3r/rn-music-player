@@ -37,6 +37,8 @@ if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
 }
 
+let _lastQueueAdvance = 0;
+
 type PlayerStore = {
   files: Song[];
   currentSong: Song | null;
@@ -522,6 +524,13 @@ export const usePlayerStore = create<PlayerStore>()(
         } = get();
 
         if (!queue.length) return;
+
+        // Debounce multiple "update" triggers
+        const now = Date.now();
+        if (method === "update" && now - _lastQueueAdvance < 800) {
+          return;
+        }
+        _lastQueueAdvance = now;
 
         // Handle repeat-one
         if (repeat === "one" && method === "update") {
