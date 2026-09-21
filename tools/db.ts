@@ -108,10 +108,11 @@ export async function getDB(): Promise<SQLiteDatabase> {
 
 export async function addSong(song: Song) {
   const db = await getDB();
+  const songDate = song.date ?? Date.now();
   await db.runAsync(
     `INSERT OR REPLACE INTO songs
       (id, uri, filename, title, artist, album, duration, coverArt, size, date, year, lyrics, syncedLyrics)
-     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, strftime('%s','now'), ?, ?, ?)`,
+     VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`,
 
     [
       song.id || song.uri,
@@ -123,11 +124,46 @@ export async function addSong(song: Song) {
       song.duration ?? 0,
       song.coverArt ?? null,
       song.size ?? 0,
+      songDate,
       song.year ?? null,
       song.lyrics ?? null,
       song.syncedLyrics ?? null,
     ]
   );
+}
+
+export async function addSongsBatch(songs: Song[]) {
+  if (!songs || songs.length === 0) return;
+  const db = await getDB();
+  await db.withExclusiveTransactionAsync(async (txn) => {
+    const statement = await txn.prepareAsync(
+      `INSERT OR REPLACE INTO songs
+        (id, uri, filename, title, artist, album, duration, coverArt, size, date, year, lyrics, syncedLyrics)
+       VALUES (?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?, ?)`
+    );
+    try {
+      for (const song of songs) {
+        const songDate = song.date ?? Date.now();
+        await statement.executeAsync([
+          song.id || song.uri,
+          song.uri ?? null,
+          song.filename ?? null,
+          song.title ?? null,
+          song.artist ?? null,
+          song.album ?? null,
+          song.duration ?? 0,
+          song.coverArt ?? null,
+          song.size ?? 0,
+          songDate,
+          song.year ?? null,
+          song.lyrics ?? null,
+          song.syncedLyrics ?? null,
+        ]);
+      }
+    } finally {
+      await statement.finalizeAsync();
+    }
+  });
 }
 
 export async function getSong(songId: string): Promise<Song | undefined> {

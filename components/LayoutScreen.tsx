@@ -231,23 +231,27 @@ const LayoutScreen = () => {
             <Text>Loading Music...</Text>
           ) : tabSelected === "list" ? (
             <MusicList
-              files={files}
-              setTabSelected={setTabSelected}
-              playSong={playSong}
-              setCurrentSongIndex={setCurrentSongIndex}
-              currentSong={song}
+              {...({
+                files,
+                setTabSelected,
+                playSong,
+                setCurrentSongIndex,
+                currentSong: song,
+              } as any)}
             />
           ) : (
             <Playing
-              setTabSelected={setTabSelected}
-              playSong={playSong}
-              currentSongIndex={currentSongIndex}
-              playPauseMusic={playPauseMusic}
-              duration={duration}
-              position={position}
-              handleChangeSongPosition={handleChangeSongPosition}
-              isPlaying={isPlaying}
-              currentSong={song}
+              {...({
+                setTabSelected,
+                playSong,
+                currentSongIndex,
+                playPauseMusic,
+                duration,
+                position,
+                handleChangeSongPosition,
+                isPlaying,
+                currentSong: song,
+              } as any)}
             />
           )}
         </SafeAreaView>

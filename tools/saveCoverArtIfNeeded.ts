@@ -2,43 +2,60 @@ import * as Crypto from "expo-crypto";
 import * as FileSystem from "expo-file-system";
 
 const ALBUM_ART_DIR = FileSystem.documentDirectory + "albumArt/";
+const albumArtCache = new Map<string, string>();
+let isDirCreated = false;
 
 async function saveCoverArtIfNeeded(
   coverData: Uint8Array,
-  album: string
+  album: string | null | undefined
 ): Promise<string | null> {
   try {
-    await FileSystem.makeDirectoryAsync(ALBUM_ART_DIR, { intermediates: true });
+    const cacheKey = album && album.trim() ? album.trim() : null;
+    if (cacheKey && albumArtCache.has(cacheKey)) {
+      return albumArtCache.get(cacheKey)!;
+    }
 
-    // Stable filename: hash of album name (or fallback)
+    if (!isDirCreated) {
+      const dirInfo = await FileSystem.getInfoAsync(ALBUM_ART_DIR);
+      if (!dirInfo.exists) {
+        await FileSystem.makeDirectoryAsync(ALBUM_ART_DIR, { intermediates: true });
+      }
+      isDirCreated = true;
+    }
+
+    // Stable filename: hash of album name or cover art snippet
+    const seed = cacheKey || Buffer.from(coverData.subarray(0, 1024)).toString("base64");
     const hash = await Crypto.digestStringAsync(
       Crypto.CryptoDigestAlgorithm.SHA256,
-      album || Date.now().toString()
+      seed
     );
     const filePath = ALBUM_ART_DIR + `${hash}.jpg`;
 
-    // ✅ Check if file already exists
+    // Check if file already exists in cache or disk
+    if (albumArtCache.has(filePath)) {
+      if (cacheKey) albumArtCache.set(cacheKey, filePath);
+      return filePath;
+    }
+
     const fileInfo = await FileSystem.getInfoAsync(filePath);
     if (fileInfo.exists && fileInfo.size > 0) {
+      albumArtCache.set(filePath, filePath);
+      if (cacheKey) albumArtCache.set(cacheKey, filePath);
       return filePath;
     }
 
     // Convert cover art to base64
     const base64Data = Buffer.from(coverData).toString("base64");
 
-    // ✅ Write new file
+    // Write new file
     await FileSystem.writeAsStringAsync(filePath, base64Data, {
       encoding: FileSystem.EncodingType.Base64,
     });
 
-    // Double-check file was written
-    const writtenFile = await FileSystem.getInfoAsync(filePath);
-    if (writtenFile.exists && writtenFile.size > 0) {
-      return filePath;
-    } else {
-      console.warn("Cover art save failed, file empty:", filePath);
-      return null;
-    }
+    albumArtCache.set(filePath, filePath);
+    if (cacheKey) albumArtCache.set(cacheKey, filePath);
+
+    return filePath;
   } catch (err) {
     console.warn("Failed to save cover art", err);
     return null;
