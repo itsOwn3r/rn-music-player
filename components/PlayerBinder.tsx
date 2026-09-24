@@ -1,4 +1,5 @@
 import { usePlayerStore, usePlaylistStore } from "@/tools/store/usePlayerStore";
+import { updateMusicWidget } from "@/tools/services/widgetService";
 import { syncFolder } from "@/tools/syncFolder";
 import { useEffect } from "react";
 import { AppState } from "react-native";
@@ -6,8 +7,14 @@ import TrackPlayer from "react-native-track-player";
 
 export default function PlayerBinder() {
   const volume = usePlayerStore((s) => s.volume);
+  const currentSong = usePlayerStore((s) => s.currentSong);
+  const isPlaying = usePlayerStore((s) => s.isPlaying);
 
   const loadPlaylists = usePlaylistStore((s) => s.loadPlaylists);
+
+  useEffect(() => {
+    updateMusicWidget(currentSong, isPlaying);
+  }, [currentSong, isPlaying]);
 
   useEffect(() => {
     let appStateSubscription: any;

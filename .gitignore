@@ -5,7 +5,7 @@ node_modules/
 
 data/music.ts
 assets/data
-android
+/android
 build
 my-app-key.keystore
 my-release-key.keystore

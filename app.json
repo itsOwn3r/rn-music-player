@@ -60,7 +60,8 @@
       ],
       "expo-audio",
       "react-native-edge-to-edge",
-      "expo-sqlite"
+      "expo-sqlite",
+      "./plugins/withMusicWidget"
     ],
     "experiments": {
       "typedRoutes": true

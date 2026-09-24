@@ -1,12 +1,24 @@
 import TrackPlayer, { Event, State } from "react-native-track-player";
 import { usePlayerStore } from "./tools/store/usePlayerStore";
+import { updateMusicWidget } from "./tools/services/widgetService";
 
 export default async function playbackService() {
-  TrackPlayer.addEventListener(Event.RemotePlay, () => TrackPlayer.play());
+  TrackPlayer.addEventListener(Event.RemotePlay, async () => {
+    const state = await TrackPlayer.getPlaybackState();
+    if (state.state === State.Stopped || state.state === State.None) {
+      await usePlayerStore.getState().playPauseMusic();
+    } else {
+      await TrackPlayer.play();
+    }
+  });
+
   TrackPlayer.addEventListener(Event.RemotePause, () => TrackPlayer.pause());
 
   TrackPlayer.addEventListener(Event.PlaybackState, (data) => {
-    usePlayerStore.setState({ isPlaying: data.state === State.Playing });
+    const isPlaying = data.state === State.Playing;
+    usePlayerStore.setState({ isPlaying });
+    const currentSong = usePlayerStore.getState().currentSong;
+    updateMusicWidget(currentSong, isPlaying);
   });
 
   TrackPlayer.addEventListener(

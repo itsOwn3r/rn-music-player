@@ -33,6 +33,7 @@ import { toast } from "sonner-native";
 import { create } from "zustand";
 import { createJSONStorage, persist } from "zustand/middleware";
 import { downloadSongWithSAF } from "../downloadManager";
+import { updateMusicWidget } from "../services/widgetService";
 
 if (!(global as any).Buffer) {
   (global as any).Buffer = Buffer;
@@ -768,10 +769,28 @@ export const usePlayerStore = create<PlayerStore>()(
           "🎵 PlayerStore rehydrated with queue:",
           state?.queue?.length ?? 0
         );
+        if (state?.currentSong) {
+          updateMusicWidget(state.currentSong, state.isPlaying ?? false);
+        }
       },
     }
   )
 );
+
+let _prevWidgetSongKey: string | null = null;
+let _prevWidgetIsPlaying: boolean | null = null;
+
+usePlayerStore.subscribe((state) => {
+  const songKey = state.currentSong
+    ? `${state.currentSong.id || state.currentSong.uri}-${state.currentSong.title}`
+    : null;
+  const isPlaying = state.isPlaying;
+  if (songKey !== _prevWidgetSongKey || isPlaying !== _prevWidgetIsPlaying) {
+    _prevWidgetSongKey = songKey;
+    _prevWidgetIsPlaying = isPlaying;
+    updateMusicWidget(state.currentSong, isPlaying);
+  }
+});
 
 export const usePlaylistStore = create<{
   playlists: Playlist[];
