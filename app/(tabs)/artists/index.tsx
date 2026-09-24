@@ -30,7 +30,7 @@ export function processMusicData(musicArray: Song[]) {
         album: song.album,
         filename: song.filename,
         coverArt: song.coverArt,
-        artist: song.artist,
+        artist: song.artist || "Unknown Artist",
       };
 
       if (artistsMap.has(artistName)) {
@@ -39,7 +39,7 @@ export function processMusicData(musicArray: Song[]) {
         existingArtist.songs.push(songData);
       } else {
         // Create a new artist entry
-        artistsMap.set(artistName?.toLowerCase(), {
+        artistsMap.set((artistName || "Unknown Artist")?.toLowerCase(), {
           name: artistName,
           image: artistImage,
           songs: [songData],
@@ -72,7 +72,7 @@ const ArtistsScreen = () => {
     if (search.trim() === "") return uniqueArtists;
     const lowerSearch = search.toLowerCase();
     return uniqueArtists.filter((t) =>
-      t?.name?.toLowerCase().includes(lowerSearch)
+      (t?.name || "Unknown Artist").toLowerCase().includes(lowerSearch)
     );
   }, [uniqueArtists, search]);
 
@@ -121,7 +121,7 @@ const ArtistsScreen = () => {
               <Link
                 href={{
                   pathname: "/artists/[name]",
-                  params: { name: artist.name },
+                  params: { name: artist.name || "Unknown Artist" },
                 }}
                 className="text-white"
                 asChild
@@ -138,7 +138,7 @@ const ArtistsScreen = () => {
                           numberOfLines={1}
                           className="text-white text-xl max-w-[80%]"
                         >
-                          {artist.name}
+                          {artist.name || "Unknown Artist"}
                         </Text>
                         <Text
                           numberOfLines={1}

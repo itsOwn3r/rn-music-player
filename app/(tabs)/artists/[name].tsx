@@ -15,12 +15,14 @@ const ArtistDetailScreen = () => {
 
   const router = useRouter();
 
-  const decodedName = artistName.replaceAll("+", " ");
+  const decodedName = (artistName || "Unknown Artist").replaceAll("+", " ");
 
   const uniqueArtists: Artist[] = processMusicData(files);
 
   const findArtist = uniqueArtists.find((artist) =>
-    artist.name.toLowerCase().includes(decodedName.toLowerCase())
+    (artist.name || "Unknown Artist")
+      .toLowerCase()
+      .includes(decodedName.toLowerCase())
   );
 
   if (!findArtist) {
