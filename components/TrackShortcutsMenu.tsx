@@ -151,16 +151,19 @@ const TrackShortcutsMenu = ({
               </Text>
             </TouchableOpacity>
 
-            {isInPlaylist && (
-              <TouchableOpacity
-                className="px-5 py-4 border-b border-white/10"
-                onPress={removeFromPlaylist}
-              >
-                <Text className="text-base text-gray-100">
-                  ❌ Remove from Playlist
-                </Text>
-              </TouchableOpacity>
-            )}
+            {isInPlaylist &&
+              !["recent", "most-played", "history"].includes(
+                playlistId || ""
+              ) && (
+                <TouchableOpacity
+                  className="px-5 py-4 border-b border-white/10"
+                  onPress={removeFromPlaylist}
+                >
+                  <Text className="text-base text-gray-100">
+                    ❌ Remove from Playlist
+                  </Text>
+                </TouchableOpacity>
+              )}
 
             <TouchableOpacity
               className="px-5 py-4 border-b border-white/10"

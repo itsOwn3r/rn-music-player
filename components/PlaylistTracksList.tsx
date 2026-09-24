@@ -18,7 +18,13 @@ import { useSafeAreaInsets } from "react-native-safe-area-context";
 import QueueControls from "./QueueControls";
 import TracksList from "./TracksList";
 
-const systemPlaylists = ["downloads", "recent", "most-played", "favorites"];
+const systemPlaylists = [
+  "downloads",
+  "recent",
+  "most-played",
+  "favorites",
+  "history",
+];
 
 export const PlaylistTracksList = ({
   playlist,
@@ -32,12 +38,6 @@ export const PlaylistTracksList = ({
   const populatePlaylistSong = useMemo(() => {
     return playlist.songs ?? [];
   }, [playlist.songs]);
-
-  // if (playlistName === "most-played") {
-  //   populatePlaylistSong = populatePlaylistSong.sort(
-  //     (a, b) => (b.playCount ?? 0) - (a.playCount ?? 0)
-  //   );
-  // }
 
   const filteredPlaylistSongs = useMemo(() => {
     if (search.trim() === "") return populatePlaylistSong;
@@ -55,6 +55,7 @@ export const PlaylistTracksList = ({
   const insets = useSafeAreaInsets();
 
   const removePlaylist = usePlaylistStore((s) => s.removePlaylist);
+  const clearHistory = usePlaylistStore((s) => s.clearHistory);
 
   const handleDeletePlaylist = (playlistId: string) => {
     Alert.alert(
@@ -67,6 +68,24 @@ export const PlaylistTracksList = ({
           style: "destructive",
           onPress: () => {
             removePlaylist(playlistId);
+            router.back();
+          },
+        },
+      ]
+    );
+  };
+
+  const handleClearHistory = () => {
+    Alert.alert(
+      "Clear Listening History",
+      "Are you sure you want to clear your playback history?",
+      [
+        { text: "Cancel", style: "cancel" },
+        {
+          text: "Clear",
+          style: "destructive",
+          onPress: async () => {
+            await clearHistory();
             router.back();
           },
         },
@@ -140,6 +159,20 @@ export const PlaylistTracksList = ({
 
             {search.length === 0 && (
               <QueueControls tracks={populatePlaylistSong} />
+            )}
+            {playlist.id === "history" && populatePlaylistSong.length > 0 && search.length === 0 && (
+              <View className="w-full justify-center items-center mt-3">
+                <TouchableOpacity
+                  onPress={handleClearHistory}
+                  activeOpacity={0.8}
+                  className="px-4 py-2.5 bg-neutral-900 border border-neutral-700/60 rounded-xl flex-row justify-center items-center gap-x-2"
+                >
+                  <Ionicons name="trash-outline" size={17} color="#ef4444" />
+                  <Text className="text-red-400 font-medium text-sm text-center">
+                    Clear Listening History
+                  </Text>
+                </TouchableOpacity>
+              </View>
             )}
             {!systemPlaylists.includes(playlist.id) && (
               <View className="w-full justify-center items-center">

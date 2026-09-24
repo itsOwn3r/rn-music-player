@@ -14,6 +14,20 @@ export type TrackListItemProps = {
   playlistId?: string;
 };
 
+function formatRelativeTime(timestamp?: number | null): string | null {
+  if (!timestamp || timestamp <= 0) return null;
+  const ms = timestamp < 10000000000 ? timestamp * 1000 : timestamp;
+  const diffSec = Math.floor((Date.now() - ms) / 1000);
+  if (diffSec < 60) return "Just now";
+  const diffMin = Math.floor(diffSec / 60);
+  if (diffMin < 60) return `${diffMin}m ago`;
+  const diffHr = Math.floor(diffMin / 60);
+  if (diffHr < 24) return `${diffHr}h ago`;
+  const diffDays = Math.floor(diffHr / 24);
+  if (diffDays < 7) return `${diffDays}d ago`;
+  return `${Math.floor(diffDays / 7)}w ago`;
+}
+
 const TracksListItem = memo(
   ({
     track,
@@ -23,7 +37,30 @@ const TracksListItem = memo(
     isInPlaylist,
     playlistId,
   }: TrackListItemProps) => {
-    // const isActiveTrack = track?.index === currentSongIndex;
+    const getSubtitle = () => {
+      const artist = track.artist ? track.artist : "Unknown Artist";
+      if (
+        playlistId === "most-played" &&
+        track.playCount &&
+        track.playCount > 0
+      ) {
+        return `${artist} • ${track.playCount} play${track.playCount > 1 ? "s" : ""}`;
+      }
+      if (
+        playlistId === "history" &&
+        track.lastPlayedAt &&
+        track.lastPlayedAt > 0
+      ) {
+        const rel = formatRelativeTime(track.lastPlayedAt);
+        if (rel) return `${artist} • ${rel}`;
+      }
+      if (playlistId === "recent" && track.date && track.date > 0) {
+        const rel = formatRelativeTime(track.date);
+        if (rel) return `${artist} • Added ${rel}`;
+      }
+      return artist;
+    };
+
     return (
       <TouchableHighlight
         className="px-4 py-2"
@@ -55,7 +92,7 @@ const TracksListItem = memo(
                   numberOfLines={1}
                   className="text-[#9ca3af] text-sm mt-1 "
                 >
-                  {track.artist ? track.artist : "Unknown Artist"}
+                  {getSubtitle()}
                 </Text>
               </View>
             </View>

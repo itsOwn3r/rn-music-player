@@ -49,6 +49,14 @@ export async function initDB() {
       );
     `);
 
+    // Ensure columns exist on older installations
+    try {
+      await db.execAsync(`ALTER TABLE songs ADD COLUMN playCount INTEGER DEFAULT 0;`);
+    } catch {}
+    try {
+      await db.execAsync(`ALTER TABLE songs ADD COLUMN lastPlayedAt INTEGER DEFAULT 0;`);
+    } catch {}
+
     const now = Date.now();
 
     const systemPlaylists = [
@@ -74,6 +82,12 @@ export async function initDB() {
         id: "most-played",
         name: "Most Played",
         description: "Your top 50 most listened songs",
+        type: "system",
+      },
+      {
+        id: "history",
+        name: "History",
+        description: "Recently played songs",
         type: "system",
       },
     ];
@@ -249,10 +263,16 @@ export async function incrementPlayCountInDB(
     return;
   }
   const db = await getDB();
+  const now = Date.now();
   await db.runAsync(
-    "UPDATE songs SET playCount = COALESCE(playCount, 0) + 1, lastPlayedAt = strftime('%s','now') WHERE id = ?",
-    [songId]
+    "UPDATE songs SET playCount = COALESCE(playCount, 0) + 1, lastPlayedAt = ? WHERE id = ? OR uri = ?",
+    [now, songId, songId]
   );
+}
+
+export async function clearHistoryInDB(): Promise<void> {
+  const db = await getDB();
+  await db.runAsync("UPDATE songs SET lastPlayedAt = 0");
 }
 
 export async function updateSongSyncedLyrics(
@@ -301,22 +321,61 @@ export async function getAllPlaylists(
 
   const playlists: Playlist[] = await db.getAllAsync(query, params);
   for (const playlist of playlists) {
-    const songs: Song[] = await db.getAllAsync(
-      `SELECT s.* FROM songs s
-       JOIN playlist_songs ps ON ps.songId = s.id
-       WHERE ps.playlistId = ?`,
-      [playlist.id]
-    );
+    let songs: Song[] = [];
+    if (playlist.id === "recent") {
+      songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        ORDER BY date DESC
+        LIMIT 50
+      `);
+    } else if (playlist.id === "most-played") {
+      songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        WHERE playCount > 0
+        ORDER BY playCount DESC, lastPlayedAt DESC
+        LIMIT 50
+      `);
+    } else if (playlist.id === "history") {
+      songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        WHERE lastPlayedAt > 0
+        ORDER BY lastPlayedAt DESC
+        LIMIT 50
+      `);
+    } else {
+      songs = await db.getAllAsync(
+        `SELECT s.* FROM songs s
+         JOIN playlist_songs ps ON ps.songId = s.id
+         WHERE ps.playlistId = ?`,
+        [playlist.id]
+      );
+    }
     playlist.songs = songs;
     playlist.songsLength = songs.length;
     playlist.duration = songs.reduce((acc, s) => acc + (s.duration || 0), 0);
   }
 
+  // Define preferred display order for known system/special playlists
+  const orderMap: Record<string, number> = {
+    favorites: 1,
+    recent: 2,
+    "most-played": 3,
+    history: 4,
+    downloads: 5,
+  };
+
+  playlists.sort((a, b) => {
+    const orderA = orderMap[a.id] ?? 100;
+    const orderB = orderMap[b.id] ?? 100;
+    if (orderA !== orderB) return orderA - orderB;
+    return (b.createdAt || 0) - (a.createdAt || 0);
+  });
+
   return playlists;
 }
 
 export async function getSpeceficSystemPlaylist(
-  type: "recent" | "most-played"
+  type: "recent" | "most-played" | "history"
 ) {
   let songs: Song[] = [];
 
@@ -336,6 +395,7 @@ export async function getSpeceficSystemPlaylist(
     songs = await db.getAllAsync(`
         SELECT * FROM songs
         ORDER BY date DESC
+        LIMIT 50
       `);
   } else if (type === "most-played") {
     // Most played: top 50 by playCount
@@ -343,6 +403,14 @@ export async function getSpeceficSystemPlaylist(
         SELECT * FROM songs
         WHERE playCount > 0
         ORDER BY playCount DESC, lastPlayedAt DESC
+        LIMIT 50
+      `);
+  } else if (type === "history") {
+    // History: recently played songs
+    songs = await db.getAllAsync(`
+        SELECT * FROM songs
+        WHERE lastPlayedAt > 0
+        ORDER BY lastPlayedAt DESC
         LIMIT 50
       `);
   }
@@ -355,7 +423,11 @@ export async function getSpeceficSystemPlaylist(
 }
 
 export async function addSongToPlaylist(playlistId: string, songId: string) {
-  if (playlistId === "recent" || playlistId === "most-played") {
+  if (
+    playlistId === "recent" ||
+    playlistId === "most-played" ||
+    playlistId === "history"
+  ) {
     return;
   }
   const db = await getDB();
@@ -389,7 +461,8 @@ export async function removePlaylist(playlistId: string) {
     playlistId === "downloads" ||
     playlistId === "recent" ||
     playlistId === "most-played" ||
-    playlistId === "favorites"
+    playlistId === "favorites" ||
+    playlistId === "history"
   ) {
     return;
   }
@@ -402,7 +475,11 @@ export async function removeSongFromPlaylist(
   playlistId: string,
   songId: string
 ) {
-  if (playlistId === "recent" || playlistId === "most-played") {
+  if (
+    playlistId === "recent" ||
+    playlistId === "most-played" ||
+    playlistId === "history"
+  ) {
     return;
   }
   const db = await getDB();

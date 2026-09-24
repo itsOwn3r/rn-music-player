@@ -3,9 +3,9 @@ import { PlaylistTracksList } from "@/components/PlaylistTracksList";
 import { usePlaylistStore } from "@/tools/store/usePlayerStore";
 import { Playlist } from "@/types/types";
 import { MaterialIcons } from "@expo/vector-icons";
-import { Redirect, useLocalSearchParams, useRouter } from "expo-router";
-import { useEffect, useState } from "react";
-import { Text, TouchableOpacity, View } from "react-native";
+import { Redirect, useFocusEffect, useLocalSearchParams, useRouter } from "expo-router";
+import { useCallback, useState } from "react";
+import { Image, Text, TouchableOpacity, View } from "react-native";
 import { SafeAreaView } from "react-native-safe-area-context";
 import { toast } from "sonner-native";
 
@@ -22,31 +22,54 @@ const PlaylistScreen = () => {
     undefined
   );
 
-  // Always update playlist when playlists or route changes
-  useEffect(() => {
-    let mounted = true;
+  // Always update playlist when playlists or route changes, or screen gains focus
+  useFocusEffect(
+    useCallback(() => {
+      let mounted = true;
 
-    const updatePlaylist = async () => {
-      if (playlistId === "most-played" || playlistId === "recent") {
-        const p = await getSpeceficSystemPlaylist(playlistId);
-        // console.log("p  ", p);
-        if (p) {
-          const firstCover = p.songs?.[0]?.coverArt;
-          p.coverArt = (firstCover ?? p.coverArt ?? "") as string;
+      const updatePlaylist = async () => {
+        if (
+          playlistId === "most-played" ||
+          playlistId === "recent" ||
+          playlistId === "history"
+        ) {
+          const p = await getSpeceficSystemPlaylist(playlistId);
+          if (p) {
+            const firstCover = p.songs?.[0]?.coverArt;
+            if (playlistId === "most-played") {
+              p.coverArt =
+                firstCover ??
+                Image.resolveAssetSource(
+                  require("@/assets/images/most-played.png")
+                ).uri;
+            } else if (playlistId === "recent") {
+              p.coverArt =
+                firstCover ??
+                Image.resolveAssetSource(
+                  require("@/assets/images/recent.png")
+                ).uri;
+            } else if (playlistId === "history") {
+              p.coverArt =
+                firstCover ??
+                Image.resolveAssetSource(
+                  require("@/assets/images/history.png")
+                ).uri;
+            }
+          }
+          if (mounted) setPlaylist(p ?? null);
+        } else {
+          const found = getPlaylists.find((p) => p.id === playlistId) ?? null;
+          if (mounted) setPlaylist(found);
         }
-        if (mounted) setPlaylist(p ?? null);
-      } else {
-        const found = getPlaylists.find((p) => p.id === playlistId) ?? null;
-        if (mounted) setPlaylist(found);
-      }
-    };
+      };
 
-    updatePlaylist();
+      updatePlaylist();
 
-    return () => {
-      mounted = false;
-    };
-  }, [playlistId, getPlaylists, getSpeceficSystemPlaylist]);
+      return () => {
+        mounted = false;
+      };
+    }, [playlistId, getPlaylists, getSpeceficSystemPlaylist])
+  );
 
   if (playlist === undefined) {
     return <LoadingScreen />;

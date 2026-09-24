@@ -41,33 +41,45 @@ const PlaylistScreen = () => {
   const [search, setSearch] = useState("");
 
   const filteredPlaylists = useMemo(() => {
-    if (search.trim() === "")
-      return getPlaylists.map((s) =>
-        s.id === "most-played"
-          ? {
-              ...s,
-              coverArt: Image.resolveAssetSource(
-                require("@/assets/images/most-played.png")
-              ).uri,
-            }
-          : s.id === "recent"
-            ? {
-                ...s,
-                coverArt: Image.resolveAssetSource(
-                  require("@/assets/images/recent.png")
-                ).uri,
-              }
-            : s.id === "downloads"
-              ? {
-                  ...s,
-                  coverArt: Image.resolveAssetSource(
-                    require("@/assets/images/download.png")
-                  ).uri,
-                }
-              : s
-      );
+    const playlistsWithCovers = getPlaylists.map((s) => {
+      if (s.id === "most-played") {
+        return {
+          ...s,
+          coverArt: Image.resolveAssetSource(
+            require("@/assets/images/most-played.png")
+          ).uri,
+        };
+      }
+      if (s.id === "recent") {
+        return {
+          ...s,
+          coverArt: Image.resolveAssetSource(
+            require("@/assets/images/recent.png")
+          ).uri,
+        };
+      }
+      if (s.id === "downloads") {
+        return {
+          ...s,
+          coverArt: Image.resolveAssetSource(
+            require("@/assets/images/download.png")
+          ).uri,
+        };
+      }
+      if (s.id === "history") {
+        return {
+          ...s,
+          coverArt: Image.resolveAssetSource(
+            require("@/assets/images/history.png")
+          ).uri,
+        };
+      }
+      return s;
+    });
+
+    if (search.trim() === "") return playlistsWithCovers;
     const lowerSearch = search.toLowerCase();
-    return getPlaylists.filter(
+    return playlistsWithCovers.filter(
       (t) =>
         t?.name?.toLowerCase().includes(lowerSearch) ||
         t?.description?.toLowerCase().includes(lowerSearch)

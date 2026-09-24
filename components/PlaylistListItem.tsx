@@ -17,7 +17,7 @@ export const PlaylistListItem = ({
   playlist,
   ...props
 }: PlaylistListItemProps) => {
-  const songCount = playlist.songs?.length ?? 0;
+  const songCount = playlist.songs?.length ?? playlist.songsLength ?? 0;
   const duration = playlist.duration
     ? `${Math.floor(playlist.duration / 60)} min`
     : "0 min";
@@ -53,11 +53,10 @@ export const PlaylistListItem = ({
             ) : null}
 
             {/* Duration + Song count */}
-            {!["downloads", "recent", "most-played"].includes(playlist.id) && (
-              <Text className="text-gray-500 text-xs mt-0.5">
-                {songCount} song{songCount !== 1 ? "s" : ""} • {duration}
-              </Text>
-            )}
+            <Text className="text-gray-500 text-xs mt-0.5">
+              {songCount} {songCount === 1 ? "song" : "songs"}
+              {playlist.duration > 0 ? ` • ${duration}` : ""}
+            </Text>
           </View>
           <View>
             <AntDesign

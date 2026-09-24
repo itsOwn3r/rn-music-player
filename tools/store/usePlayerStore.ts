@@ -12,6 +12,7 @@ import {
   getSongInfoFromDB,
   getSpeceficSystemPlaylist,
   incrementPlayCountInDB,
+  clearHistoryInDB,
   removeFavorite,
   removePlaylist,
   removeSongFromPlaylist,
@@ -233,8 +234,9 @@ export const usePlayerStore = create<PlayerStore>()(
         // 🔹 Start playback
         await TrackPlayer.play();
 
-        incrementPlayCount(file?.id);
-        await incrementPlayCountInDB(file?.id);
+        const trackId = file?.id || file?.uri;
+        incrementPlayCount(trackId);
+        await incrementPlayCountInDB(trackId);
 
         const trackDuration = duration ?? (await TrackPlayer.getDuration());
 
@@ -537,8 +539,9 @@ export const usePlayerStore = create<PlayerStore>()(
           await TrackPlayer.seekTo(0);
           await TrackPlayer.play();
           setIsPlaying(true);
-          incrementPlayCount(currentSong?.id);
-          await incrementPlayCountInDB(currentSong?.id);
+          const trackId = currentSong?.id || currentSong?.uri;
+          incrementPlayCount(trackId);
+          await incrementPlayCountInDB(trackId);
           return;
         }
 
@@ -788,8 +791,9 @@ export const usePlaylistStore = create<{
     songId: string
   ) => Promise<void>;
   getSpeceficSystemPlaylist: (
-    type: "recent" | "most-played"
+    type: "recent" | "most-played" | "history"
   ) => Promise<Playlist | undefined>;
+  clearHistory: () => Promise<void>;
 }>((set, get) => ({
   playlists: [],
   isLoading: false,
@@ -873,9 +877,16 @@ export const usePlaylistStore = create<{
     await removeSongFromPlaylist(playlistId, songId);
     await get().loadPlaylists("all");
   },
-  getSpeceficSystemPlaylist: async (type: "recent" | "most-played") => {
+  getSpeceficSystemPlaylist: async (
+    type: "recent" | "most-played" | "history"
+  ) => {
     const playlist = await getSpeceficSystemPlaylist(type);
     return playlist;
+  },
+  clearHistory: async () => {
+    await clearHistoryInDB();
+    await get().loadPlaylists("all");
+    toast.success("Playback history cleared!");
   },
 }));
 
